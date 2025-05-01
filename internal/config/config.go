@@ -22,6 +22,7 @@ var Conf struct {
 	Server struct {
 		Port string `yaml:"port" json:"port"`
 	} `yaml:"server" json:"server"`
+	JwtSecurityKey string `yaml:"jwt_security_key" json:"jwtSecurityKey"`
 }
 
 // LoadConfig 加载配置文件

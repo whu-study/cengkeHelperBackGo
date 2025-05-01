@@ -1,0 +1,10 @@
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: 12345678
+  database: cengke_helper_db
+  auto_migrate: false
+server:
+  port: 8080
+jwt_security_key: 1234567890abcdef
