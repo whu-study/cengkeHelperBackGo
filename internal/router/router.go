@@ -13,6 +13,7 @@ func Routers() *gin.Engine {
 	v1 := app.Group("/api/v1")
 	{
 		v1.GET("/ping", handlers.PingHandler)
+		v1.GET("/users/profile", handlers.UserProfileHandler)
 	}
 	return app
 }

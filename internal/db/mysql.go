@@ -1,7 +1,7 @@
 package database
 
 import (
-	"cengkeHelperBackGo/internal/models"
+	"cengkeHelperBackGo/internal/models/dto"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
@@ -34,7 +34,7 @@ func TableAutoMigrate() {
 	//	logger.Info("未启用迁移数据库")
 	//	return
 	//}
-	if err := Client.AutoMigrate(&models.User{}); err != nil {
+	if err := Client.AutoMigrate(&dto.User{}); err != nil {
 		panic(err)
 		return
 	}

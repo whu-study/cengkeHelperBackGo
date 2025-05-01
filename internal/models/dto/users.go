@@ -1,4 +1,4 @@
-package models
+package dto
 
 import (
 	"time"
@@ -9,6 +9,10 @@ const (
 	UserRoleAdmin  uint8 = 1
 )
 
+type SimpleUser struct {
+	Id    uint32
+	Email string
+}
 type User struct {
 	Id        uint32    `gorm:"primaryKey"`
 	Email     string    `gorm:"not null;unique;type:varchar(255)"`
