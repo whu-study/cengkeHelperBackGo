@@ -14,7 +14,7 @@ func Routers() *gin.Engine {
 	v1 := app.Group("/api/v1")
 	{
 		v1.GET("/ping", handlers.PingHandler)
-		v1.GET("auth/user-login", handlers.UserLoginHandler)
+		v1.POST("/auth/user-login", handlers.UserLoginHandler)
 
 		v1.Use(filter.UserAuthChecker())
 		v1.GET("/users/echo", handlers.UserEchoHandler)

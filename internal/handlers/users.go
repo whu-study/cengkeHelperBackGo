@@ -10,8 +10,8 @@ import (
 )
 
 func UserProfileHandler(c *gin.Context) {
-	userId := c.Query("userId")
-	if userId == "" {
+	userId, ok := c.Get("userId")
+	if !ok {
 		c.JSON(http.StatusBadRequest, vo.NewBadResp("userId is required"))
 		return
 	}

@@ -9,6 +9,7 @@ import (
 // UserClaims 用于储存用户的JWT的声明信息
 type UserClaims struct {
 	Username string `json:"username"`
+	UserId   uint32 `json:"userId"`
 	Role     uint8  `json:"role"`
 	jwt.RegisteredClaims
 }

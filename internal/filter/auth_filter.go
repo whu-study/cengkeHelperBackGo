@@ -50,6 +50,7 @@ func UserAuthChecker() gin.HandlerFunc {
 		// 将数据保存到请求上下文，传递给下一级请求链
 		c.Set("username", claims.Username)
 		c.Set("role", claims.Role)
+		c.Set("userId", claims.UserId)
 
 		// 进入下一步请求链
 		c.Next()
