@@ -1,0 +1,66 @@
+# This workflow will build a Go project, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 检出代码
+      - uses: actions/checkout@v4
+
+      # 设置 Go 环境
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24.2'
+
+      # Go 模块缓存，确保每次构建时可以复用之前下载的依赖
+      - name: Dependencies Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # 构建 Go 项目
+      - name: Build
+        run: go build -o my-go-app
+
+      # 将打包后的可执行文件从 Github Action 服务器传输至私人服务器中
+      - name: 把可执行文件发到服务器，使用新的 scp 逻辑
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT }}
+          source: my-go-app
+          target: /opt/go-proj
+          strip_components: 0
+
+      # 部署运行
+      - name: Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          # 同上述
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          # 使用 SSH 密钥
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT }}
+          # ssh 进入系统后执行什么样的操作。一般是关闭原有的服务再重启
+          script: |
+            cd /opt/go-proj
+            ps -ef | grep my-go-app | grep -v grep | awk '{print $2}' | xargs kill -9
+            nohup /opt/go-proj/my-go-app > /opt/go-proj/logs/runtime.log 2>&1 &
+            pwd
