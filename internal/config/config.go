@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"gopkg.in/yaml.v3"
@@ -11,16 +12,16 @@ import (
 // Conf 定义配置结构体
 var Conf struct {
 	Mysql struct {
-		Host        string `yaml:"host"`
-		Port        string `yaml:"port"`
-		User        string `yaml:"user"`
-		Password    string `yaml:"password"`
-		Database    string `yaml:"database"`
-		AutoMigrate bool   `yaml:"auto_migrate"`
-	} `yaml:"mysql"`
+		Host        string `yaml:"host" json:"host"`
+		Port        string `yaml:"port" json:"port"`
+		User        string `yaml:"user" json:"user"`
+		Password    string `yaml:"password" json:"password"`
+		Database    string `yaml:"database" json:"database"`
+		AutoMigrate bool   `yaml:"auto_migrate" json:"autoMigrate"`
+	} `yaml:"mysql" json:"mysql"`
 	Server struct {
-		Port int `yaml:"port"`
-	} `yaml:"server"`
+		Port string `yaml:"port" json:"port"`
+	} `yaml:"server" json:"server"`
 }
 
 // LoadConfig 加载配置文件
@@ -65,6 +66,7 @@ func WatchConfigLoop(filePath string) bool {
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					fmt.Println("Config file modified, reloading...")
 					LoadConfig(filePath)
+
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -84,15 +86,11 @@ func WatchConfigLoop(filePath string) bool {
 }
 
 func init() {
-	//if LoadConfig("config.yaml") ||
-	//	LoadConfig("internal/config/config.yaml") {
-	//	fmt.Println("Conf loaded successfully: \n", Conf)
-	//} else {
-	//	panic("Failed to load config")
-	//}
 	if WatchConfigLoop("config.yaml") ||
-		WatchConfigLoop("internal/config/config.yaml") {
-		fmt.Println("Conf loaded successfully: \n", Conf)
+		WatchConfigLoop("internal/config/config.yaml") ||
+		WatchConfigLoop("~/config.yaml") {
+		confBytes, _ := json.MarshalIndent(Conf, " ", "    ")
+		fmt.Println("Conf loaded successfully: \n", string(confBytes))
 	} else {
 		panic("Failed to load config")
 	}

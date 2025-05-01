@@ -1,9 +1,12 @@
 package main
 
-import "cengkeHelperBackGo/internal/router"
+import (
+	"cengkeHelperBackGo/internal/config"
+	"cengkeHelperBackGo/internal/router"
+)
 
 func main() {
-	if err := router.Routers().Run(":" + "8080"); err != nil {
+	if err := router.Routers().Run(":" + config.Conf.Server.Port); err != nil {
 		panic(err)
 		return
 	}
