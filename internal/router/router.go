@@ -1,6 +1,7 @@
 package router
 
 import (
+	"cengkeHelperBackGo/internal/filter"
 	"cengkeHelperBackGo/internal/handlers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,14 @@ func Routers() *gin.Engine {
 	v1 := app.Group("/api/v1")
 	{
 		v1.GET("/ping", handlers.PingHandler)
+		v1.GET("auth/user-login", handlers.UserLoginHandler)
+
+		v1.Use(filter.UserAuthChecker())
+		v1.GET("/users/echo", handlers.UserEchoHandler)
 		v1.GET("/users/profile", handlers.UserProfileHandler)
+
+		v1.Use(filter.AdminAuthChecker())
+		v1.GET("/admins/echo", handlers.AdminEchoHandler)
 	}
 	return app
 }

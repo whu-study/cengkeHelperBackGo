@@ -1,10 +1,9 @@
 package filter
 
 import (
-	"cengkeHelperBackGo/internal/config"
-	"cengkeHelperBackGo/internal/models"
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo"
+	"cengkeHelperBackGo/pkg/utils"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -28,7 +27,7 @@ func UserAuthChecker() gin.HandlerFunc {
 		}
 
 		// 解析token
-		claims, err := ParseUserJwt(tokenString)
+		claims, err := utils.ParseUserJwt(tokenString)
 		if err != nil {
 			switch {
 			case errors.Is(err, jwt.ErrSignatureInvalid):
@@ -73,6 +72,7 @@ func AdminAuthChecker() gin.HandlerFunc {
 				c.Abort()
 			}
 		} else {
+			// 不可能进入
 			c.JSON(http.StatusUnauthorized, vo.RespData{
 				Code: 401,
 				Data: nil,
@@ -80,24 +80,5 @@ func AdminAuthChecker() gin.HandlerFunc {
 			})
 			c.Abort()
 		}
-	}
-}
-
-func ParseUserJwt(token string) (*models.UserClaims, error) {
-	t, err := jwt.ParseWithClaims(token, &models.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.Conf.JwtSecurityKey), nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Go 语言中的类型断言（Type Assertion）语法
-	// 如果类型转换成功，则ok为true
-	// 否则ok为false
-	if claims, ok := t.Claims.(*models.UserClaims); ok && t.Valid {
-		return claims, nil
-	} else {
-		return nil, err
 	}
 }
