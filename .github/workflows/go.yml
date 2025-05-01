@@ -34,7 +34,7 @@ jobs:
 
       # 构建 Go 项目
       - name: Build
-        run: go build -o my-go-app
+        run: go build ./cmd/main.go -o my-go-app
 
       # 将打包后的可执行文件从 Github Action 服务器传输至私人服务器中
       - name: 把可执行文件发到服务器，使用新的 scp 逻辑
@@ -45,7 +45,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT }}
           source: my-go-app
-          target: /opt/go-proj
+          target: /opt/go-proj/helper
           strip_components: 0
 
       # 部署运行
