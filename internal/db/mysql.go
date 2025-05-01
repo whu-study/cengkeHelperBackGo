@@ -1,6 +1,7 @@
-package config
+package database
 
 import (
+	"cengkeHelperBackGo/internal/config"
 	"cengkeHelperBackGo/internal/models/dto"
 	"fmt"
 	"gorm.io/driver/mysql"
@@ -23,9 +24,9 @@ func init() {
 	}
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		Conf.Mysql.User, Conf.Mysql.Password,
-		Conf.Mysql.Host, Conf.Mysql.Port,
-		Conf.Mysql.Database)
+		config.Conf.Mysql.User, config.Conf.Mysql.Password,
+		config.Conf.Mysql.Host, config.Conf.Mysql.Port,
+		config.Conf.Mysql.Database)
 	// 连接到SQLite数据库
 	if Client, err = gorm.Open(mysql.Open(dsn), &cfg); err != nil {
 		panic(err)
@@ -35,10 +36,10 @@ func init() {
 }
 
 func TableAutoMigrate() {
-	//if !config.EnvCfg.AutoMigrate {
-	//	logger.Info("未启用迁移数据库")
-	//	return
-	//}
+	if !config.Conf.Mysql.AutoMigrate {
+		fmt.Println("未启用迁移数据库")
+		return
+	}
 	if err := Client.AutoMigrate(&dto.User{}); err != nil {
 		panic(err)
 		return
