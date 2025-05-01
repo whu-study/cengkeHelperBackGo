@@ -1,4 +1,4 @@
-package database
+package config
 
 import (
 	"cengkeHelperBackGo/internal/models/dto"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestMysql(t *testing.T) {
-
+	LoadConfig("../config/config.yaml")
 	user := dto.User{
 		Username: "testuser",
 		Password: "testpassword",

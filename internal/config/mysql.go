@@ -1,7 +1,8 @@
-package database
+package config
 
 import (
 	"cengkeHelperBackGo/internal/models/dto"
+	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
@@ -20,7 +21,11 @@ func init() {
 		//},
 		ConnPool: nil,
 	}
-	dsn := "root:12345678@tcp(127.0.0.1:3306)/cengke_helper_db?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		Conf.Mysql.User, Conf.Mysql.Password,
+		Conf.Mysql.Host, Conf.Mysql.Port,
+		Conf.Mysql.Database)
 	// 连接到SQLite数据库
 	if Client, err = gorm.Open(mysql.Open(dsn), &cfg); err != nil {
 		panic(err)

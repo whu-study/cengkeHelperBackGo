@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	database "cengkeHelperBackGo/internal/db"
+	database "cengkeHelperBackGo/internal/config"
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo"
 	"fmt"
