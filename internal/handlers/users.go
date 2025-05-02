@@ -20,8 +20,12 @@ func UserProfileHandler(c *gin.Context) {
 	if err := database.Client.
 		Model(&dto.User{}).
 		Where("id = ?", userId).
-		Find(&user).Error; err != nil {
-
+		First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, vo.RespData{
+			Code: 404,
+			Msg:  "failed to find user",
+		})
+		return
 	}
 
 	fmt.Println(user)
