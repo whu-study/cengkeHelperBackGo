@@ -17,10 +17,10 @@ func NewBadResp(msg string) RespData {
 }
 
 // NewSuccessResp 成功响应
-func NewSuccessResp(data interface{}) RespData {
+func NewSuccessResp(data interface{}, msg string) RespData {
 	return RespData{
 		Code: config.CodeSuccess,
-		Msg:  config.GetMessage(config.CodeSuccess),
+		Msg:  msg,
 		Data: data,
 	}
 }

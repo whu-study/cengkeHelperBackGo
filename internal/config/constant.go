@@ -17,4 +17,5 @@ const (
 	CodeTokenExpired     = 10004 // Token过期
 	CodeTokenInvalid     = 10005 // Token无效
 	CodePermissionDenied = 10006 // 权限不足
+	CodeUsernameExists   = 10007 // 用户名已存在
 )
