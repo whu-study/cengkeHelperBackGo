@@ -19,6 +19,7 @@ func Routers() *gin.Engine {
 		v1.Use(filter.UserAuthChecker())
 		v1.GET("/users/echo", handlers.UserEchoHandler)
 		v1.GET("/users/profile", handlers.UserProfileHandler)
+		v1.PUT("/users/profile", handlers.UpdateUserProfileHandler)
 
 		v1.Use(filter.AdminAuthChecker())
 		v1.GET("/admins/echo", handlers.AdminEchoHandler)

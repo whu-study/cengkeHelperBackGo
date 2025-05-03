@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"cengkeHelperBackGo/internal/config"
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo"
 	"cengkeHelperBackGo/internal/services"
@@ -42,7 +43,7 @@ func UserLoginHandler(c *gin.Context) {
 	log.Println("用户登录: ", user.Username, user.UserRole)
 
 	c.JSON(http.StatusOK, vo.RespData{
-		Code: 200,
+		Code: config.CodeSuccess,
 		Data: gin.H{
 			"token":        token,
 			"expirationAt": expirationTime.Unix(),
