@@ -18,4 +18,5 @@ const (
 	CodeTokenInvalid     = 10005 // Token无效
 	CodePermissionDenied = 10006 // 权限不足
 	CodeUsernameExists   = 10007 // 用户名已存在
+	CodeDatabaseError    = 10008 // 数据库错误	//
 )
