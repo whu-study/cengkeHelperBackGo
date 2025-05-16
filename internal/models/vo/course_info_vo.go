@@ -1,5 +1,7 @@
 package vo
 
+//import "cengkeHelperBackGo/internal/models/dto"
+
 // CourseInfoVO 课程信息VO（完全匹配前端接口）
 type CourseInfoVO struct {
 	Room         string `json:"room"`

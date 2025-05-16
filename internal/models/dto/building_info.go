@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"cengkeHelperBackGo/internal/models/vo"
+	//"cengkeHelperBackGo/internal/models/vo"
 	"time"
 )
 
@@ -15,13 +15,4 @@ type BuildingInfo struct {
 	Courses    []CourseInfo `gorm:"foreignKey:BuildingID" json:"infos"`
 	CreatedAt  time.Time    `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt  time.Time    `gorm:"autoUpdateTime" json:"updatedAt"`
-}
-
-func (b *BuildingInfo) ToVO() vo.BuildingInfoVO {
-	return vo.BuildingInfoVO{
-		Building: b.Name, // 模型中的 Name 映射到前端的 building
-		Label:    b.Label,
-		Value:    b.Value,
-		Infos:    convertCoursesToVO(b.Courses),
-	}
 }

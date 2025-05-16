@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"cengkeHelperBackGo/internal/models/vo"
+	//"cengkeHelperBackGo/internal/models/vo"
 	"time"
 )
 
@@ -18,20 +18,4 @@ type CourseInfo struct {
 	CourseType   string    `gorm:"type:varchar(50);not null;comment:课程类型" json:"courseType"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
-}
-
-func convertCoursesToVO(courses []CourseInfo) []vo.CourseInfoVO {
-	var voCourses []vo.CourseInfoVO
-	for _, c := range courses {
-		voCourses = append(voCourses, vo.CourseInfoVO{
-			Room:         c.Room,
-			Faculty:      c.Faculty,
-			CourseName:   c.CourseName,
-			TeacherName:  c.TeacherName,
-			TeacherTitle: c.TeacherTitle,
-			CourseTime:   c.CourseTime,
-			CourseType:   c.CourseType,
-		})
-	}
-	return voCourses
 }

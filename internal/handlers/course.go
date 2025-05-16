@@ -28,10 +28,33 @@ func GetCoursesHandler(c *gin.Context) {
 	for _, div := range divisions {
 		var buildings []vo.BuildingInfoVO
 		for _, b := range div.Buildings {
-			buildings = append(buildings, b.ToVO())
+			buildings = append(buildings, ToVO(b))
 		}
 		result = append(result, buildings)
 	}
 
-	c.JSON(http.StatusOK, vo.NewSuccessResp(result, "课程数据获取成功"))
+	c.JSON(http.StatusOK, vo.NewSuccessResp("课程数据获取成功", result))
+}
+func convertCoursesToVO(courses []dto.CourseInfo) []vo.CourseInfoVO {
+	var voCourses []vo.CourseInfoVO
+	for _, c := range courses {
+		voCourses = append(voCourses, vo.CourseInfoVO{
+			Room:         c.Room,
+			Faculty:      c.Faculty,
+			CourseName:   c.CourseName,
+			TeacherName:  c.TeacherName,
+			TeacherTitle: c.TeacherTitle,
+			CourseTime:   c.CourseTime,
+			CourseType:   c.CourseType,
+		})
+	}
+	return voCourses
+}
+func ToVO(b dto.BuildingInfo) vo.BuildingInfoVO {
+	return vo.BuildingInfoVO{
+		Building: b.Name,
+		Label:    b.Label,
+		Value:    b.Value,
+		Infos:    convertCoursesToVO(b.Courses),
+	}
 }
