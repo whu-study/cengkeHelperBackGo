@@ -3,6 +3,8 @@ package services
 import (
 	database "cengkeHelperBackGo/internal/db"
 	"cengkeHelperBackGo/internal/models/dto"
+	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 )
 
@@ -15,5 +17,11 @@ func CheckUser(email string, password string) (dto.User, bool) {
 		return dto.User{}, false // 用户不存在
 	}
 
-	return user, user.Password == password // 验证成功
+	// 验证密码
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		fmt.Println("密码验证失败:", err)
+		return dto.User{}, false // 密码不匹配
+	}
+	return user, true // 密码匹配, 返回用户信息
 }
