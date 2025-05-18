@@ -9,7 +9,7 @@ import (
 // UserClaims 用于储存用户的JWT的声明信息
 type UserClaims struct {
 	Username string `json:"username"`
-	UserId   uint32 `json:"userId"`
+	UserId   string `json:"userId"`
 	Role     uint8  `json:"role"`
 	jwt.RegisteredClaims
 }
@@ -33,13 +33,15 @@ func ParseUserJwt(token string) (*UserClaims, error) {
 	}
 }
 
-func GenerateUserToken(username string, role uint8) (string, error) {
+func GenerateUserToken(username string, role uint8, UserId string) (string, error) {
 
 	// 5 天有效期
 	expirationTime := time.Now().Add(5 * 24 * time.Hour)
+
 	// 验证成功，准备签名生成token
 	claims := &UserClaims{
 		Username: username,
+		UserId:   UserId,
 		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime), // 过期时间

@@ -11,6 +11,9 @@ import (
 
 var Client *gorm.DB
 
+func GetDB() *gorm.DB {
+	return Client
+}
 func init() {
 	var err error
 	var cfg gorm.Config
@@ -40,9 +43,23 @@ func TableAutoMigrate() {
 		fmt.Println("未启用迁移数据库")
 		return
 	}
-	if err := Client.AutoMigrate(&dto.User{}); err != nil {
-		panic(err)
-		return
+
+	// 要迁移的所有模型
+	modelsToMigrate := []interface{}{
+		&dto.User{},
+		&dto.Division{},
+		&dto.BuildingInfo{},
+		&dto.CourseInfo{},
+		&dto.Post{},
+		&dto.Comment{},
+		&dto.UserPostCollect{},
+		&dto.UserPostLike{},
+		&dto.UserCommentLike{},
+	}
+
+	// 批量执行自动迁移
+	if err := Client.AutoMigrate(modelsToMigrate...); err != nil {
+		panic(fmt.Errorf("数据库迁移失败: %v", err))
 	}
 
 }

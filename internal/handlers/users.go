@@ -30,7 +30,7 @@ func UserProfileHandler(c *gin.Context) {
 	}
 
 	fmt.Println(user)
-	c.JSON(http.StatusOK, vo.NewSuccessResp(user, "用户信息查询成功"))
+	c.JSON(http.StatusOK, vo.NewSuccessResp("用户信息查询成功", user))
 	// select * from users where id = userId
 
 }
@@ -120,6 +120,6 @@ func UpdateUserProfileHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, vo.NewSuccessResp(updatedUser, "用户信息修改成功"))
+	c.JSON(http.StatusOK, vo.NewSuccessResp("用户信息修改成功", updatedUser))
 	return
 }
