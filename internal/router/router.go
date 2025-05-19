@@ -13,18 +13,25 @@ var app *gin.Engine
 func Routers() *gin.Engine {
 	postHandler := handlers.NewPostHandler()
 	commentHandler := handlers.NewCommentHandler()
+	courseHandler := handlers.NewCourseHandler()
 	v1 := app.Group("/api/v1")
 	{
 		v1.GET("/ping", handlers.PingHandler)
 		v1.POST("/auth/user-login", handlers.UserLoginHandler)
-		v1.GET("/courses", handlers.GetCoursesHandler)
 		v1.POST("/auth/user-register", handlers.UserRegisterHandler)
 
 		v1.Use(filter.UserAuthChecker())
 		v1.GET("/users/echo", handlers.UserEchoHandler)
 		v1.GET("/users/profile", handlers.UserProfileHandler)
 		v1.PUT("/users/profile", handlers.UpdateUserProfileHandler)
+		courses := v1.Group("/courses")
+		{
+			courses.GET("", courseHandler.GetCoursesHandler)
+			courses.GET("/:courseId", courseHandler.GetCourseDetailHandler)
+			courses.POST("/reviews", courseHandler.SubmitCourseReviewHandler)
+			courses.GET("/reviews/:courseId", courseHandler.GetCourseReviewsHandler)
 
+		}
 		posts := v1.Group("/posts") // 应用用户认证中间件
 		{
 			posts.GET("/:id", postHandler.GetPostByID)
@@ -58,6 +65,7 @@ func init() {
 
 	// 中间件，解决开发时的跨域问题
 	app.Use(cors.New(cors.Config{
+
 		AllowMethods:     []string{"GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"},
 		AllowHeaders:     []string{"*"},
 		AllowCredentials: true,

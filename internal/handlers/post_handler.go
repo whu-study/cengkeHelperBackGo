@@ -198,13 +198,14 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 		vo.RespondError(c, http.StatusUnauthorized, config.CodeUnauthorized, "用户未授权", nil)
 		return
 	}
-	userID, ok := userIDVal.(uint32)
-	if !ok {
+	var authorID uint32
+	_, err = fmt.Sscanf(userIDVal.(string), "%d", &authorID)
+	if err != nil {
 		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "无法获取用户ID", nil)
 		return
 	}
 
-	updatedPostVO, serviceErr := h.postService.UpdatePost(postID, userID, &postData)
+	updatedPostVO, serviceErr := h.postService.UpdatePost(postID, authorID, &postData)
 	if serviceErr != nil {
 		if serviceErr.Error() == "帖子未找到" {
 			vo.RespondError(c, http.StatusNotFound, config.CodeNotFound, serviceErr.Error(), nil)
@@ -248,13 +249,14 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 		vo.RespondError(c, http.StatusUnauthorized, config.CodeUnauthorized, "用户未授权", nil)
 		return
 	}
-	userID, ok := userIDVal.(uint32)
-	if !ok {
+	var authorID uint32
+	_, err = fmt.Sscanf(userIDVal.(string), "%d", &authorID)
+	if err != nil {
 		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "无法获取用户ID", nil)
 		return
 	}
 	role := c.Param("role")
-	serviceErr := h.postService.DeletePost(postID, userID, role)
+	serviceErr := h.postService.DeletePost(postID, authorID, role)
 	if serviceErr != nil {
 		if serviceErr.Error() == "帖子未找到" {
 			vo.RespondError(c, http.StatusNotFound, config.CodeNotFound, serviceErr.Error(), nil)
