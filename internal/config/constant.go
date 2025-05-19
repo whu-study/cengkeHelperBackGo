@@ -13,13 +13,18 @@ const (
 	CodeServiceUnavailable = 50300 // 服务不可用
 	CodeServerError        = 50001 // 服务器错误
 
-	CodeUserExist        = 10001 // 用户已存在
-	CodeUserNotFound     = 10002 // 用户不存在
-	CodePasswordError    = 10003 // 密码错误
-	CodeTokenExpired     = 10004 // Token过期
-	CodeTokenInvalid     = 10005 // Token无效
-	CodePermissionDenied = 10006 // 权限不足
-	CodeUsernameExists   = 10007 // 用户名已存在
-	CodeDatabaseError    = 10008 // 数据库错误	//
-	CodeEmailExists      = 10009 // 邮箱已存在
+	CodeUserExist              = 10001      // 用户已存在
+	CodeUserNotFound           = 10002      // 用户不存在
+	CodePasswordError          = 10003      // 密码错误
+	CodeTokenExpired           = 10004      // Token过期
+	CodeTokenInvalid           = 10005      // Token无效
+	CodePermissionDenied       = 10006      // 权限不足
+	CodeUsernameExists         = 10007      // 用户名已存在
+	CodeDatabaseError          = 10008      // 数据库错误	//
+	CodeEmailExists            = 10009      // 邮箱已存在
+	CodeInvalidParams          = 10010      // 参数错误
+	MsgCourseNotFound          = "课程不存在"    // 课程不存在
+	MsgUserNotFound            = "用户不存在"    // 用户不存在
+	MsgCourseForReviewNotFound = "课程待审核不存在" // 课程待审核不存在
+	MsgUserForReviewNotFound   = "用户待审核不存在" // 用户待审核不存在
 )

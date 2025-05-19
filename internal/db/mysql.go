@@ -55,6 +55,7 @@ func TableAutoMigrate() {
 		&dto.UserPostCollect{},
 		&dto.UserPostLike{},
 		&dto.UserCommentLike{},
+		&dto.CourseReviewModel{},
 	}
 
 	// 批量执行自动迁移
