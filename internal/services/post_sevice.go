@@ -174,14 +174,14 @@ func (s *PostService) GetPostByID(postID uint32, currentUserID *uint32) (*vo.Pos
 		return nil, err
 	}
 
-	//// 2. 浏览量+1（使用原子操作避免并发问题）
-	//if err := tx.Model(&dto.Post{}).
-	//	Where("id = ?", postID).
-	//	UpdateColumn("view_count", gorm.Expr("view_count + 1")).
-	//	Error; err != nil {
-	//	tx.Rollback()
-	//	return nil, fmt.Errorf("更新浏览量失败: %w", err)
-	//}
+	// 2. 浏览量+1（使用原子操作避免并发问题）
+	if err := tx.Model(&dto.Post{}).
+		Where("id = ?", postID).
+		UpdateColumn("view_count", gorm.Expr("view_count + 1")).
+		Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("更新浏览量失败: %w", err)
+	}
 
 	// 3. 重新加载更新后的帖子信息（可选）
 	if err := tx.First(&post, postID).Error; err != nil {
