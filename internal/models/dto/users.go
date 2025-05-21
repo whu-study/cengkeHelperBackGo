@@ -17,7 +17,7 @@ type User struct {
 	Id        uint32    `gorm:"primaryKey" json:"id"`
 	Email     string    `gorm:"not null;unique;type:varchar(255)" json:"email"`
 	Username  string    `gorm:"not null;unique;type:varchar(100)" json:"username"`
-	Password  string    `gorm:"not null;type:varchar(255)" json:"password"`
+	Password  string    `gorm:"not null;type:varchar(255)" json:"-"` // 密码不返回给前端
 	UserRole  uint8     `gorm:"not null;type:tinyint(1)" json:"userRole"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 
