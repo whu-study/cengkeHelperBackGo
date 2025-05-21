@@ -19,23 +19,26 @@ func Routers() *gin.Engine {
 		v1.GET("/ping", handlers.PingHandler)
 		v1.POST("/auth/user-login", handlers.UserLoginHandler)
 		v1.POST("/auth/user-register", handlers.UserRegisterHandler)
-
+		v1.GET("/courses", courseHandler.GetCoursesHandler)
+		v1.GET("/courses/:courseId", courseHandler.GetCourseDetailHandler)
+		v1.GET("/posts/comments/:postId", commentHandler.GetCommentsByPostID) // GET /api/v1/posts/:id/comments (获取帖子的评论)
+		v1.GET("/posts", postHandler.GetPosts)
+		v1.GET("/posts/:id", postHandler.GetPostByID)
+		v1.GET("/courses/reviews/:courseId", courseHandler.GetCourseReviewsHandler)
 		v1.Use(filter.UserAuthChecker())
+
 		v1.GET("/users/echo", handlers.UserEchoHandler)
 		v1.GET("/users/profile", handlers.UserProfileHandler)
 		v1.PUT("/users/profile", handlers.UpdateUserProfileHandler)
 		courses := v1.Group("/courses")
 		{
-			courses.GET("", courseHandler.GetCoursesHandler)
-			courses.GET("/:courseId", courseHandler.GetCourseDetailHandler)
+
 			courses.POST("/reviews", courseHandler.SubmitCourseReviewHandler)
-			courses.GET("/reviews/:courseId", courseHandler.GetCourseReviewsHandler)
 
 		}
 		posts := v1.Group("/posts") // 应用用户认证中间件
 		{
-			posts.GET("/:id", postHandler.GetPostByID)
-			posts.GET("", postHandler.GetPosts)
+
 			posts.POST("", postHandler.CreatePost)                           // POST /api/v1/posts (创建帖子)
 			posts.PUT("/:id", postHandler.UpdatePost)                        // PUT /api/v1/posts/:id (更新帖子)
 			posts.DELETE("/:id", postHandler.DeletePost)                     // DELETE /api/v1/posts/:id (删除帖子)
@@ -43,7 +46,7 @@ func Routers() *gin.Engine {
 			posts.POST("/:id/toggle-collect", postHandler.ToggleCollectPost) // POST /api/v1/posts/:id/toggle-collect
 
 		} // POST /api/v1/posts/:id/toggle-collect
-		v1.GET("/posts/comments/:postId", commentHandler.GetCommentsByPostID) // GET /api/v1/posts/:id/comments (获取帖子的评论)
+
 		comments := v1.Group("/comments")
 		{
 			comments.POST("", commentHandler.AddComment)                               // POST /api/v1/posts/:id/comments (创建帖子的评论)
