@@ -3,6 +3,7 @@ package router
 import (
 	"cengkeHelperBackGo/internal/filter"
 	"cengkeHelperBackGo/internal/handlers"
+	"cengkeHelperBackGo/internal/handlers/auth"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"time"
@@ -16,9 +17,9 @@ func Routers() *gin.Engine {
 	v1 := app.Group("/api/v1")
 	{
 		v1.GET("/ping", handlers.PingHandler)
-		v1.POST("/auth/user-login", handlers.UserLoginHandler)
+		v1.POST("/auth/user-login", auth.UserLoginHandler)
 		v1.GET("/courses", handlers.GetCoursesHandler)
-		v1.POST("/auth/user-register", handlers.UserRegisterHandler)
+		v1.POST("/auth/user-register", auth.UserRegisterHandler)
 
 		v1.Use(filter.UserAuthChecker())
 		v1.GET("/users/echo", handlers.UserEchoHandler)

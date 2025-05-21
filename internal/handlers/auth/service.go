@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	database "cengkeHelperBackGo/internal/db"
@@ -8,8 +8,7 @@ import (
 	"log"
 )
 
-// 在 services/auth_service.go (或类似文件) 中
-func CheckUser(email string, password string) (dto.User, bool) {
+func checkUser(email string, password string) (dto.User, bool) {
 	var user dto.User
 	// 根据邮箱查找用户
 	if err := database.Client.Where("email = ?", email).First(&user).Error; err != nil {
@@ -24,4 +23,8 @@ func CheckUser(email string, password string) (dto.User, bool) {
 		return dto.User{}, false // 密码不匹配
 	}
 	return user, true // 密码匹配, 返回用户信息
+}
+
+func checkEmailCode(email, emailCode string) bool {
+	return emailCode == "123456"
 }

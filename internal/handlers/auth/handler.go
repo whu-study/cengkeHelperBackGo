@@ -1,17 +1,17 @@
-package handlers
+package auth
 
 import (
 	"cengkeHelperBackGo/internal/config"
-	database "cengkeHelperBackGo/internal/db" // 如果 CheckUser 没有返回完整的用户 DTO，可能需要这个
+	database "cengkeHelperBackGo/internal/db" // 如果 checkUser 没有返回完整的用户 DTO，可能需要这个
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo"
-	"cengkeHelperBackGo/internal/services"
 	"cengkeHelperBackGo/pkg/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt" // 如果 UserRegisterHandler 在同一个文件并且使用它，则保留
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -23,23 +23,23 @@ func UserLoginHandler(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusUnprocessableEntity, vo.RespData{Code: http.StatusBadRequest, Msg: "无效的请求参数: " + err.Error()}) // 使用 StatusUnprocessableEntity 更准确
+		c.JSON(http.StatusBadRequest, vo.NewBadResp("请求参数错误: "+err.Error()))
 		return
 	}
 
-	// services.CheckUser 理想情况下应该在成功验证后返回完整的 dto.User 对象。
+	// services.checkUser 理想情况下应该在成功验证后返回完整的 dto.User 对象。
 	// 如果它目前只返回布尔值或有限信息，你可能需要修改它，
 	// 或者在密码检查成功后单独获取用户详细信息。
-	user, ok := services.CheckUser(req.Email, req.Password) // 将 req.Email 传递给 CheckUser
+	user, ok := checkUser(req.Email, req.Password) // 将 req.Email 传递给 checkUser
 	if !ok {
-		c.JSON(http.StatusUnauthorized, vo.NewBadResp("邮箱或密码错误")) // 对登录失败使用 StatusUnauthorized (401)
+		c.JSON(http.StatusBadRequest, vo.NewBadResp("邮箱或密码错误"))
 		return
 	}
 
 	// 确保敏感数据（如密码哈希）不会包含在响应中。
 	// dto.User 结构体最好是为安全的 API 响应而设计的，
 	// 或者你可以创建一个特定的 dto.UserLoginResponse 结构体。
-	// 此处我们假设 CheckUser 返回的 user 对象已经是安全的。
+	// 此处我们假设 checkUser 返回的 user 对象已经是安全的。
 	// 如果不是，你需要在这里填充一个新的结构体，例如：
 	// safeUserResponse := dto.User{
 	// 	Id:       user.Id,
@@ -50,7 +50,7 @@ func UserLoginHandler(c *gin.Context) {
 	// 	UserRole: user.UserRole,
 	//  CreatedAt: user.CreatedAt, // 如果前端需要创建时间
 	// }
-	// 由于 CheckUser 现在应该处理密码字段的剥离，可以直接使用 user
+	// 由于 checkUser 现在应该处理密码字段的剥离，可以直接使用 user
 
 	expirationTime := time.Now().Add(5 * 24 * time.Hour) // 5 天有效期
 	// GenerateUserToken 可能需要用户名或唯一标识符，以及角色
@@ -81,7 +81,7 @@ func UserLoginHandler(c *gin.Context) {
 	})
 }
 
-// UserRegisterHandler 保持与你提供的 auth.go 文件中的一致，但我们也将使其返回用户信息和token
+// UserRegisterHandler 保持与你提供的 handler.go 文件中的一致，但我们也将使其返回用户信息和token
 func UserRegisterHandler(c *gin.Context) {
 	var req dto.RegisterRequest // 确保 dto.RegisterRequest 包含前端发送的所有字段，例如 email, password, emailCode
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -89,21 +89,25 @@ func UserRegisterHandler(c *gin.Context) {
 		return
 	}
 
-	// 服务端也应该有校验逻辑，例如密码复杂度，以防前端校验被绕过。
-
 	// 1. 检查邮箱唯一性
 	var emailCount int64
 	if err := database.Client.Model(&dto.User{}).
 		Where("email = ?", req.Email).
 		Count(&emailCount).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, vo.NewBadResp("邮箱唯一性检查失败"))
+		c.JSON(http.StatusBadRequest, vo.NewBadResp(err.Error()))
 		return
 	}
 	if emailCount > 0 {
-		c.JSON(http.StatusConflict, vo.RespData{
+		c.JSON(http.StatusBadRequest, vo.RespData{
 			Code: config.CodeEmailExists, // 确保这个常量在 config 中定义
 			Msg:  "该邮箱已被注册",
 		})
+		return
+	}
+
+	// 检查验证码
+	if !checkEmailCode(req.Email, req.EmailCode) {
+		c.JSON(http.StatusBadRequest, vo.NewBadResp("验证码错误"))
 		return
 	}
 
@@ -118,35 +122,32 @@ func UserRegisterHandler(c *gin.Context) {
 		// 如果前端没有提供用户名，可以考虑将邮箱作为默认用户名（需要确保其唯一性，如果Username字段有唯一约束）
 		// 或者生成一个唯一的用户名。为简单起见，如果dto.User的Username字段允许为空或不作唯一要求，可以不强制。
 		// 但通常，用户名是需要的。
-		// usernameToCheck = strings.Split(req.Email, "@")[0] // 简单示例：邮箱前缀作为用户名，需进一步处理唯一性
+		usernameToCheck = strings.Split(req.Email, "@")[0] // 简单示例：邮箱前缀作为用户名，需进一步处理唯一性
 	}
 
-	if usernameToCheck != "" { // 仅当 usernameToCheck 有值时才检查唯一性
-		var usernameCount int64
-		if err := database.Client.Model(&dto.User{}).
-			Where("username = ?", usernameToCheck).
-			Count(&usernameCount).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, vo.NewBadResp("用户名唯一性检查失败"))
-			return
-		}
-		if usernameCount > 0 {
-			c.JSON(http.StatusConflict, vo.RespData{
-				Code: config.CodeUsernameExists, // 确保这个常量在 config 中定义
-				Msg:  "该用户名已存在",
-			})
-			return
-		}
-	} else {
-		// 如果你的系统强制要求用户名，但前端没传，这里应该返回错误，或赋予一个默认值（如邮箱）
-		// 为了演示，如果dto.RegisterRequest中没有Username字段，
-		// 我们可以决定在dto.User中将Username设置为Email。
-		usernameToCheck = req.Email // 将邮箱用作用户名
+	var usernameCount int64
+	if err := database.Client.Model(&dto.User{}).
+		Where("username = ?", usernameToCheck).
+		Count(&usernameCount).Error; err != nil {
+		c.JSON(http.StatusBadRequest, vo.NewBadResp(err.Error()))
+		return
 	}
+	if usernameCount > 0 {
+		c.JSON(http.StatusBadRequest, vo.RespData{
+			Code: config.CodeUsernameExists, // 确保这个常量在 config 中定义
+			Msg:  "该用户名已存在",
+		})
+		return
+	}
+	// 如果你的系统强制要求用户名，但前端没传，这里应该返回错误，或赋予一个默认值（如邮箱）
+	// 为了演示，如果dto.RegisterRequest中没有Username字段，
+	// 我们可以决定在dto.User中将Username设置为Email。
+	usernameToCheck = req.Email // 将邮箱用作用户名
 
 	// 2. 密码加密
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, vo.NewBadResp("密码加密失败"))
+		c.JSON(http.StatusBadRequest, vo.NewBadResp(err.Error()))
 		return
 	}
 
@@ -169,37 +170,23 @@ func UserRegisterHandler(c *gin.Context) {
 
 	if result := database.Client.Create(&newUser); result.Error != nil {
 		log.Printf("创建用户时出错: %v", result.Error)
-		c.JSON(http.StatusInternalServerError, vo.NewBadResp("用户创建失败"))
+		c.JSON(http.StatusBadRequest, vo.NewBadResp(err.Error()))
 		return
 	}
 
 	// 用户创建成功，现在为自动登录生成令牌
 	expirationTime := time.Now().Add(5 * 24 * time.Hour)
-	// 使用 newUser.Username (或 newUser.Email) 和 newUser.UserRole 生成token
-	tokenIdentifierForJWTAfterRegister := newUser.Username
-	if tokenIdentifierForJWTAfterRegister == "" && newUser.Email != "" {
-		tokenIdentifierForJWTAfterRegister = newUser.Email
-	}
 
-	token, err := utils.GenerateUserToken(tokenIdentifierForJWTAfterRegister, newUser.UserRole, fmt.Sprintf("%d", newUser.Id))
+	token, err := utils.GenerateUserToken(newUser.Username, newUser.UserRole, fmt.Sprintf("%d", newUser.Id))
 	if err != nil {
-		log.Printf("为新注册用户 %s 生成令牌时出错: %v", tokenIdentifierForJWTAfterRegister, err)
+		log.Printf("为新注册用户 %+v 生成令牌时出错: %v", newUser, err)
 		// 注册本身是成功的，但令牌生成失败。
 		// 你仍然可以返回用户数据，但不带令牌，或者带一个关于令牌的错误消息。
 		// 为简单起见，我们继续，但令牌可能为空。
 	}
 
-	// 准备响应的用户数据，排除密码等敏感字段。
+	// 准备响应的用户数据，dto里排除密码等敏感字段。
 	// GORM Create 操作后，newUser 对象会包含数据库生成的 ID 和时间戳。
-	registeredUserResponse := gin.H{
-		"id":        newUser.Id,
-		"username":  newUser.Username,
-		"email":     newUser.Email,
-		"avatar":    newUser.Avatar,
-		"bio":       newUser.Bio,
-		"userRole":  newUser.UserRole,
-		"createdAt": newUser.CreatedAt, // GORM 会填充这个 (如果用了 gorm.Model)
-	}
 	log.Printf("用户注册成功: 用户名='%s', 邮箱='%s'", newUser.Username, newUser.Email)
 
 	c.JSON(http.StatusCreated, vo.RespData{
@@ -207,7 +194,7 @@ func UserRegisterHandler(c *gin.Context) {
 		Data: gin.H{
 			"token":        token, // 发送令牌以便立即登录
 			"expirationAt": expirationTime.Unix(),
-			"userInfo":     registeredUserResponse, // 返回新创建的用户信息
+			"userInfo":     newUser, // 返回新创建的用户信息
 		},
 		Msg: "注册成功，并已自动登录！",
 	})
