@@ -5,10 +5,10 @@ import (
 	"cengkeHelperBackGo/pkg/generator"
 	"log"
 	"slices"
-	"time"
 )
 
 type RespTeachInfo struct {
+	ID           uint32 `json:"id"`
 	Room         string `json:"room"`
 	Faculty      string `json:"faculty"`
 	CourseName   string `json:"courseName"`
@@ -22,6 +22,7 @@ type RespTeachInfo struct {
 	ReviewCount   uint32  `json:"reviewCount,omitempty"`
 }
 type MapTeachInfo struct {
+	ID           uint32
 	Classroom    string
 	Faculty      string
 	CourseName   string
@@ -29,6 +30,8 @@ type MapTeachInfo struct {
 	TeacherTitle string
 	WeekAndTime  uint32
 	Building     string
+
+	DayOfWeek string
 
 	CourseType string
 }
@@ -41,31 +44,33 @@ type BuildingTeachInfos struct {
 
 var RespTeachInfos = make([][]BuildingTeachInfos, 5)
 
-func searchByArea(areaNum int) []MapTeachInfo {
+func searchByAreaAndWeekday(areaNum int, weekday int) []MapTeachInfo {
 	tempInfo := make([]MapTeachInfo, 0)
 	if err := database.Client.
 		Raw(queryStr,
-			time.Now().Weekday(), areaNum).
+			weekday, areaNum).
 		Find(&tempInfo).Error; err != nil {
 		log.Fatal(err)
 	}
 
 	return tempInfo
 }
-func getInfos() [][]BuildingTeachInfos {
-	//tempCourse := make([]dbmodels.CourseInfo, 0)
+
+func getInfos(weekNum, weekday, lessonNum int) [][]BuildingTeachInfos {
 	for i := 0; i < 5; i++ {
 		RespTeachInfos[i] = make([]BuildingTeachInfos, 0)
 	}
+
 	for i := 1; i <= 4; i++ {
 		buildingMap := make(map[string][]RespTeachInfo)
-		for _, info := range searchByArea(i) {
-			weekNum, _, lessonNum := CurCourseTime()
+
+		for _, info := range searchByAreaAndWeekday(i, weekday) {
 			if !generator.IsWeekLessonMatch(weekNum, lessonNum, info.WeekAndTime) {
 				continue
 			}
 
 			res := RespTeachInfo{
+				ID:           info.ID,
 				Room:         info.Classroom,
 				Faculty:      info.Faculty,
 				CourseName:   info.CourseName,

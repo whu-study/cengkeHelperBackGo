@@ -5,11 +5,13 @@ import (
 )
 
 func GetTeachInfos() [][]BuildingTeachInfos {
-	return getInfos()
+	return getInfos(CurCourseTime())
 }
 
 func CurCourseTime() (weekNum int, weekday int, lessonNum int) {
-	now := time.Now()
+	//now := time.Now()
+	now := time.Date(2024, time.September, 10,
+		14, 00, 0, 0, time.Local)
 	// 计算第几周
 	beginDate := time.Date(2024, time.September, 9,
 		0, 0, 0, 0, time.Local)

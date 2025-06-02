@@ -73,7 +73,7 @@ func (h *CourseHandler) GetCoursesHandler(c *gin.Context) {
 	// 不再需要原始 handler 中的 ToVO 和 convertCoursesToVO 辅助函数，
 	// 因为数据转换的逻辑移到了 service 层。
 
-	infos := getInfos()
+	infos := GetTeachInfos()
 	// 假设 vo.RespondSuccess 存在
 	vo.RespondSuccess(c, "课程数据获取成功", infos)
 }
