@@ -30,34 +30,12 @@ func getCourseHandlerUserIDFromContext(c *gin.Context) (*uint32, bool) {
 	if !exists {
 		return nil, false
 	}
-	var userID uint32
-	switch v := userIDVal.(type) {
-	case uint: // GORM 可能使用 uint
-		userID = uint32(v)
-	case uint32:
-		userID = v
-	case int: // 其他整数类型转换
-		userID = uint32(v)
-	case int32:
-		userID = uint32(v)
-	case int64: // 确保转换安全
-		if v >= 0 && v <= (1<<32-1) {
-			userID = uint32(v)
-		} else {
-			return nil, false // 值超出 uint32 范围
-		}
-	case float64: // JWT 可能将数字解析为 float64
-		userID = uint32(v)
-	case string: // 如果是字符串形式的ID
-		parsedID, err := strconv.ParseUint(v, 10, 32)
-		if err != nil {
-			return nil, false
-		}
-		userID = uint32(parsedID)
-	default:
+	parseUint, err := strconv.ParseUint(userIDVal.(string), 10, 32)
+	if err != nil {
 		return nil, false
 	}
-	return &userID, true
+	userId := uint32(parseUint)
+	return &userId, true
 }
 
 // GetCoursesHandler godoc
@@ -163,13 +141,13 @@ func (h *CourseHandler) GetCourseReviewsHandler(c *gin.Context) {
 // @Failure 500 {object} vo.RespData "服务器内部错误"
 // @Router /reviews [post]
 func (h *CourseHandler) SubmitCourseReviewHandler(c *gin.Context) {
-	userIDPtr, authenticated := getCourseHandlerUserIDFromContext(c) // 使用辅助函数
-	if !authenticated || userIDPtr == nil {
+	userIDStr := c.GetString("userId")
+	userIDVal, err := strconv.ParseUint(userIDStr, 10, 64)
+	if userIDStr == "" || err != nil {
 		vo.RespondError(c, http.StatusUnauthorized, config.CodeUnauthorized, "用户未授权或无法获取用户ID", nil)
 		return
 	}
-	userID := *userIDPtr
-
+	userID := uint32(userIDVal)
 	var payload dto.CourseReviewCreateDTO // 使用 dto.CourseReviewCreateDTO
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		vo.RespondError(c, http.StatusBadRequest, config.CodeInvalidParams, "请求参数无效", err)
