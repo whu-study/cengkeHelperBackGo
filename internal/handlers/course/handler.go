@@ -1,4 +1,4 @@
-package handlers
+package course
 
 import (
 	"cengkeHelperBackGo/internal/config"
@@ -72,16 +72,10 @@ func getCourseHandlerUserIDFromContext(c *gin.Context) (*uint32, bool) {
 func (h *CourseHandler) GetCoursesHandler(c *gin.Context) {
 	// 不再需要原始 handler 中的 ToVO 和 convertCoursesToVO 辅助函数，
 	// 因为数据转换的逻辑移到了 service 层。
-	courseList, err := h.courseService.GetCourseList()
-	if err != nil {
-		// 使用 vo.RespondError (或您项目中的标准错误响应方式)
-		// 假设 vo.RespondError 存在
-		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "获取课程列表失败", err)
-		return
-	}
 
+	infos := getInfos()
 	// 假设 vo.RespondSuccess 存在
-	vo.RespondSuccess(c, "课程数据获取成功", courseList)
+	vo.RespondSuccess(c, "课程数据获取成功", infos)
 }
 
 // GetCourseDetailHandler godoc

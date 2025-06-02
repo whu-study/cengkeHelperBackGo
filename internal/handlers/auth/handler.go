@@ -83,7 +83,7 @@ func UserLoginHandler(c *gin.Context) {
 
 // UserRegisterHandler 保持与你提供的 handler.go 文件中的一致，但我们也将使其返回用户信息和token
 func UserRegisterHandler(c *gin.Context) {
-	var req dto.RegisterRequest // 确保 dto.RegisterRequest 包含前端发送的所有字段，例如 email, password, emailCode
+	var req vo.RegisterRequest // 确保 dto.RegisterRequest 包含前端发送的所有字段，例如 email, password, emailCode
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, vo.NewBadResp("请求参数错误: "+err.Error()))
 		return

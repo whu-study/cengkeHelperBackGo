@@ -43,10 +43,11 @@ func TableAutoMigrate() {
 
 	// 要迁移的所有模型
 	modelsToMigrate := []interface{}{
-		&dto.User{},
-		&dto.Division{},
-		&dto.BuildingInfo{},
+
 		&dto.CourseInfo{},
+		&dto.TimeInfo{},
+
+		&dto.User{},
 		&dto.Post{},
 		&dto.Comment{},
 		&dto.UserPostCollect{},

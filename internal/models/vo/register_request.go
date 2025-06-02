@@ -1,4 +1,4 @@
-package dto
+package vo
 
 type RegisterRequest struct {
 	Username  string `json:"username" binding:"required,min=3,max=100"`

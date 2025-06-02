@@ -26,92 +26,49 @@ func NewCourseService() *CourseService {
 // 我们在这里保持这个转换逻辑，但确保字段映射正确。
 // dto.CourseInfo 包含 ID，而原始 convertCoursesToVO 的输出 vo.CourseInfoVO 没有ID，但前端 course.ts 定义了 id。
 // 我将假设 vo.CourseInfoVO 也需要 ID。
-func convertCourseModelToInfoVO(course dto.CourseInfo) vo.CourseInfoVO {
-	return vo.CourseInfoVO{
-		ID:           course.ID, // 确保 vo.CourseInfoVO 有 ID 字段
-		Room:         course.Room,
-		Faculty:      course.Faculty,
-		CourseName:   course.CourseName,
-		TeacherName:  course.TeacherName,
-		TeacherTitle: course.TeacherTitle,
-		CourseTime:   course.CourseTime,
-		CourseType:   course.CourseType,
-	}
-}
-
-// convertBuildingModelToVO 将 dto.BuildingInfo (模型) 转换为 vo.BuildingInfoVO
-func convertBuildingModelToVO(building dto.BuildingInfo) vo.BuildingInfoVO {
-	var courseInfosVO []vo.CourseInfoVO
-	for _, courseModel := range building.Courses {
-		courseInfosVO = append(courseInfosVO, convertCourseModelToInfoVO(courseModel))
-	}
-	return vo.BuildingInfoVO{
-		Building: building.Name, // dto.BuildingInfo 中的 Name 对应前端的 building
-		Label:    building.Label,
-		Value:    building.Value,
-		Infos:    courseInfosVO,
-	}
-}
-
-// GetCourseList 获取按学部和教学楼分组的所有课程
-func (s *CourseService) GetCourseList() ([][]vo.BuildingInfoVO, error) {
-	var divisions []dto.Division // 使用您定义的 dto.Division
-
-	// 使用 database.Client 进行数据库操作
-	// 确保 Preload 路径与您的 GORM 模型定义匹配
-	// dto.Division 包含 Buildings []BuildingInfo `gorm:"foreignKey:DivisionID"`
-	// dto.BuildingInfo 包含 Courses []CourseInfo `gorm:"foreignKey:BuildingID"`
-	// dto.CourseInfo 没有直接关联 Teacher，如果需要 TeacherName/Title，它们已是 CourseInfo 的字段
-	if err := database.Client.
-		Preload("Buildings.Courses"). // 根据您的 dto.Division 和 dto.BuildingInfo 结构预加载
-		Find(&divisions).Error; err != nil {
-		log.Printf("Service: 获取学部及课程列表失败: %v", err)
-		return nil, fmt.Errorf("数据库查询失败: %w", err)
-	}
-
-	// 转换为前端需要的格式
-	var result [][]vo.BuildingInfoVO
-	for _, div := range divisions {
-		var buildingsVO []vo.BuildingInfoVO
-		for _, buildingModel := range div.Buildings {
-			buildingsVO = append(buildingsVO, convertBuildingModelToVO(buildingModel))
-		}
-		result = append(result, buildingsVO)
-	}
-
-	return result, nil
-}
+//func convertCourseModelToInfoVO(course dto.CourseInfo) vo.CourseInfoVO {
+//	//return vo.CourseInfoVO{
+//	//	ID:           course.ID, // 确保 vo.CourseInfoVO 有 ID 字段
+//	//	Room:         course.Room,
+//	//	Faculty:      course.Faculty,
+//	//	CourseName:   course.CourseName,
+//	//	TeacherName:  course.TeacherName,
+//	//	TeacherTitle: course.TeacherTitle,
+//	//	CourseTime:   course.CourseTime,
+//	//	CourseType:   course.CourseType,
+//	//}
+//}
 
 // GetCourseDetailByID 根据课程 ID 获取课程详细信息
 func (s *CourseService) GetCourseDetailByID(courseID uint) (*vo.CourseDetailVO, error) {
-	var courseModel dto.CourseInfo // 使用 dto.CourseInfo 作为课程模型
+	//var courseModel dto.CourseInfo // 使用 dto.CourseInfo 作为课程模型
+	//
+	//// 使用 database.Client
+	//if err := database.Client.First(&courseModel, courseID).Error; err != nil {
+	//	if errors.Is(err, gorm.ErrRecordNotFound) {
+	//		return nil, errors.New(config.MsgCourseNotFound) // 使用统一定义的错误消息
+	//	}
+	//	log.Printf("Service: 获取课程详情 (ID %d) 失败: %v", courseID, err)
+	//	return nil, fmt.Errorf("获取课程详情数据库操作失败: %w", err)
+	//}
+	//
+	//// 将模型转换为 VO
+	//courseDetailVO := &vo.CourseDetailVO{
+	//	ID:            courseModel.ID,
+	//	Room:          courseModel.Room,
+	//	Faculty:       courseModel.Faculty,
+	//	CourseName:    courseModel.CourseName,
+	//	TeacherName:   courseModel.TeacherName,
+	//	TeacherTitle:  courseModel.TeacherTitle,
+	//	CourseTime:    courseModel.CourseTime,
+	//	CourseType:    courseModel.CourseType,
+	//	Description:   courseModel.Description,
+	//	Credits:       courseModel.Credits,
+	//	AverageRating: courseModel.AverageRating,
+	//	ReviewCount:   courseModel.ReviewCount,
+	//}
 
-	// 使用 database.Client
-	if err := database.Client.First(&courseModel, courseID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New(config.MsgCourseNotFound) // 使用统一定义的错误消息
-		}
-		log.Printf("Service: 获取课程详情 (ID %d) 失败: %v", courseID, err)
-		return nil, fmt.Errorf("获取课程详情数据库操作失败: %w", err)
-	}
-
-	// 将模型转换为 VO
-	courseDetailVO := &vo.CourseDetailVO{
-		ID:            courseModel.ID,
-		Room:          courseModel.Room,
-		Faculty:       courseModel.Faculty,
-		CourseName:    courseModel.CourseName,
-		TeacherName:   courseModel.TeacherName,
-		TeacherTitle:  courseModel.TeacherTitle,
-		CourseTime:    courseModel.CourseTime,
-		CourseType:    courseModel.CourseType,
-		Description:   courseModel.Description,
-		Credits:       courseModel.Credits,
-		AverageRating: courseModel.AverageRating,
-		ReviewCount:   courseModel.ReviewCount,
-	}
-
-	return courseDetailVO, nil
+	return nil, nil
 }
 
 // GetCourseReviewsByCourseID 根据课程 ID 获取课程评价列表

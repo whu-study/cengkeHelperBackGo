@@ -8,7 +8,7 @@ import "time"
 
 // CourseInfoVO 对应前端的 CourseInfo 接口 (列表项)
 type CourseInfoVO struct {
-	ID           uint   `json:"id"`
+	ID           uint32 `json:"id"`
 	Room         string `json:"room"`
 	Faculty      string `json:"faculty"`
 	CourseName   string `json:"courseName"`
@@ -36,8 +36,8 @@ type CourseDetailVO struct {
 }
 
 type CourseReviewInfoVO struct {
-	ID           uint      `json:"id"`                     // 评价本身的ID
-	CourseID     uint      `json:"courseId"`               // 课程ID
+	ID           uint32    `json:"id"`                     // 评价本身的ID
+	CourseID     uint32    `json:"courseId"`               // 课程ID
 	Rating       int       `json:"rating"`                 // 课程评分
 	Comment      string    `json:"comment"`                // 课程评论内容
 	ReviewerName string    `json:"reviewerName,omitempty"` // 评价人名称 (需要从关联的 User 表获取)
