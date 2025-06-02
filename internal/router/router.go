@@ -18,7 +18,7 @@ func Routers() *gin.Engine {
 	{
 		v1.GET("/ping", handlers.PingHandler)
 		v1.POST("/auth/user-login", auth.UserLoginHandler)
-		v1.GET("/courses", handlers.GetCoursesHandler)
+		v1.GET("/courses", handlers.NewCourseHandler().GetCoursesHandler)
 		v1.POST("/auth/user-register", auth.UserRegisterHandler)
 
 		v1.Use(filter.UserAuthChecker())
@@ -40,9 +40,9 @@ func Routers() *gin.Engine {
 		v1.GET("/posts/comments/:postId", commentHandler.GetCommentsByPostID) // GET /api/v1/posts/:id/comments (获取帖子的评论)
 		comments := v1.Group("/comments")
 		{
-			comments.POST("", commentHandler.AddComment)                               // POST /api/v1/posts/:id/comments (创建帖子的评论)
-			comments.DELETE("/:commentId", commentHandler.DeleteComment)               // DELETE /api/v1/posts/:id/comments/:comment_id (删除帖子的评论)
-			comments.POST("/:commentId/toggle-like", commentHandler.ToggleLikeComment) // POST /api/v1/posts/:id/toggle-collect
+			comments.POST("", commentHandler.AddComment)                                // POST /api/v1/posts/:id/comments (创建帖子的评论)
+			comments.DELETE("/:commentId", commentHandler.DeleteComment)                // DELETE /api/v1/posts/:id/comments/:comment_id (删除帖子的评论)
+			comments.POST("/:com画mentId/toggle-like", commentHandler.ToggleLikeComment) // POST /api/v1/posts/:id/toggle-collect
 		} // 应用用户认证中间件
 
 		v1.Use(filter.AdminAuthChecker())

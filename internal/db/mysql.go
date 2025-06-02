@@ -11,9 +11,6 @@ import (
 
 var Client *gorm.DB
 
-func GetDB() *gorm.DB {
-	return Client
-}
 func init() {
 	var err error
 	var cfg gorm.Config
@@ -55,6 +52,7 @@ func TableAutoMigrate() {
 		&dto.UserPostCollect{},
 		&dto.UserPostLike{},
 		&dto.UserCommentLike{},
+		&dto.CourseReviewModel{},
 	}
 
 	// 批量执行自动迁移
