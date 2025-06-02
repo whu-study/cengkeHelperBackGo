@@ -22,6 +22,7 @@ type RespTeachInfo struct {
 	ReviewCount   uint32  `json:"reviewCount,omitempty"`
 }
 type MapTeachInfo struct {
+	CourseNum    string
 	ID           uint32
 	Classroom    string
 	Faculty      string
