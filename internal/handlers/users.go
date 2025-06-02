@@ -47,7 +47,7 @@ func UpdateUserProfileHandler(c *gin.Context) {
 		Username string `json:"username"`
 		Avatar   string `json:"avatar"`
 		Bio      string `json:"bio"`
-		// 注意：这里不包含敏感字段如密码、邮箱等
+		Email    string `json:"email"`
 	}
 
 	if err := c.ShouldBindJSON(&updateData); err != nil {
@@ -84,6 +84,9 @@ func UpdateUserProfileHandler(c *gin.Context) {
 	}
 	if updateData.Bio != "" {
 		updates["bio"] = updateData.Bio
+	}
+	if updateData.Email != "" {
+		updates["email"] = updateData.Email
 	}
 
 	if len(updates) == 0 {
