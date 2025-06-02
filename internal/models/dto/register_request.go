@@ -6,7 +6,6 @@ type RegisterRequest struct {
 	Email     string `json:"email" binding:"required,email"`
 	EmailCode string `json:"emailCode" binding:"required,len=6"`
 	// 可选字段
-	Avatar    string `json:"avatar"`
-	Bio       string `json:"bio"`
-	EmailCode string `json:"emailCode"`
+	Avatar string `json:"avatar"`
+	Bio    string `json:"bio"`
 }
