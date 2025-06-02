@@ -21,8 +21,8 @@ type GetPostsParamsDTO struct {
 // CreatePostDTO 对应前端 CreatePostBody，用于创建新帖子的请求体
 // 前端 CreatePostBody Omit 了很多字段，这里我们定义实际需要创建的字段
 type CreatePostDTO struct {
-	Title    string   `json:"title" binding:"required,min=5,max=100"`
-	Content  string   `json:"content" binding:"required,min=20"`
+	Title    string   `json:"title" binding:"required,min=1,max=100"`
+	Content  string   `json:"content" binding:"required,min=5"`
 	Tags     []string `json:"tags,omitempty"`
 	Category *string  `json:"category,omitempty"` // 使用指针表示可选
 	// AuthorID uint32 `json:"authorId"` // 通常由后端从JWT获取，不由前端传递
@@ -30,8 +30,8 @@ type CreatePostDTO struct {
 
 // UpdatePostDTO 对应前端 UpdatePostBody，用于更新帖子的请求体
 type UpdatePostDTO struct {
-	Title    *string  `json:"title,omitempty" binding:"omitempty,min=5,max=100"` // 指针表示可选更新
-	Content  *string  `json:"content,omitempty" binding:"omitempty,min=20"`
+	Title    *string  `json:"title,omitempty" binding:"omitempty,min=1,max=100"` // 指针表示可选更新
+	Content  *string  `json:"content,omitempty" binding:"omitempty,min=5"`
 	Tags     []string `json:"tags,omitempty"` // 如果传空数组表示清空，如果 omitempty 且为nil则不更新
 	Category *string  `json:"category,omitempty"`
 	// isPublished, isPinned, isLocked 等状态的更新也可以放在这里

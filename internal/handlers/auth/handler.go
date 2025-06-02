@@ -142,7 +142,6 @@ func UserRegisterHandler(c *gin.Context) {
 	// 如果你的系统强制要求用户名，但前端没传，这里应该返回错误，或赋予一个默认值（如邮箱）
 	// 为了演示，如果dto.RegisterRequest中没有Username字段，
 	// 我们可以决定在dto.User中将Username设置为Email。
-	usernameToCheck = req.Email // 将邮箱用作用户名
 
 	// 2. 密码加密
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
