@@ -14,7 +14,7 @@ type SimpleUser struct {
 	Email string
 }
 type User struct {
-	Id        uint32    `gorm:"primaryKey" json:"id"`
+	Id        uint32    `gorm:"not null;type:uint;primaryKey" json:"id"`
 	Email     string    `gorm:"not null;unique;type:varchar(255)" json:"email"`
 	Username  string    `gorm:"not null;unique;type:varchar(100)" json:"username"`
 	Password  string    `gorm:"not null;type:varchar(255)" json:"-"` // 密码不返回给前端

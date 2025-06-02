@@ -42,7 +42,7 @@ type Post struct {
 	ID                       uint32         `gorm:"primaryKey;autoIncrement" json:"id"`
 	Title                    string         `gorm:"type:varchar(255);not null;comment:帖子标题" json:"title"`
 	Content                  string         `gorm:"type:text;not null;comment:帖子内容 (HTML 或 Markdown)" json:"content"`
-	AuthorID                 uint32         `gorm:"not null;index;comment:帖子作者的用户ID" json:"authorId"`
+	AuthorID                 uint32         `gorm:"not null;type:uint;index;comment:帖子作者的用户ID" json:"authorId"`
 	Author                   User           `gorm:"foreignKey:AuthorID" json:"author"` // 关联作者信息
 	CreatedAt                time.Time      `gorm:"autoCreateTime;index" json:"createdAt"`
 	UpdatedAt                time.Time      `gorm:"autoUpdateTime" json:"updatedAt"`

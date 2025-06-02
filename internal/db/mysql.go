@@ -11,9 +11,6 @@ import (
 
 var Client *gorm.DB
 
-func GetDB() *gorm.DB {
-	return Client
-}
 func init() {
 	var err error
 	var cfg gorm.Config

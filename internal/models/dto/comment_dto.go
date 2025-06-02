@@ -27,7 +27,7 @@ type Comment struct {
 	Content              string    `gorm:"type:text;not null;comment:评论内容" json:"content"`
 	CreatedAt            time.Time `gorm:"autoCreateTime;index" json:"createdAt"`
 	UpdatedAt            time.Time `gorm:"autoUpdateTime" json:"updatedAt"`           // 虽然前端没直接显示，但通常会有
-	isLikedByCurrentUser bool      `gorm:"default:false" json:"isLikedByCurrentUser"` // 标记当前用户是否已点赞
+	IsLikedByCurrentUser bool      `gorm:"default:false" json:"isLikedByCurrentUser"` // 标记当前用户是否已点赞
 	LikesCount           uint      `gorm:"default:0;comment:评论点赞数量" json:"likesCount"`
 
 	// --- 用于支持回复功能 ---
