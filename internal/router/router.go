@@ -4,6 +4,7 @@ import (
 	"cengkeHelperBackGo/internal/filter"
 	"cengkeHelperBackGo/internal/handlers"
 	"cengkeHelperBackGo/internal/handlers/auth"
+	"cengkeHelperBackGo/internal/handlers/course"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"time"
@@ -14,7 +15,7 @@ var app *gin.Engine
 func Routers() *gin.Engine {
 	postHandler := handlers.NewPostHandler()
 	commentHandler := handlers.NewCommentHandler()
-	courseHandler := handlers.NewCourseHandler()
+	courseHandler := course.NewCourseHandler()
 
 	v1 := app.Group("/api/v1")
 	{
