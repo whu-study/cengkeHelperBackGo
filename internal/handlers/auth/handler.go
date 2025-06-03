@@ -198,3 +198,7 @@ func UserRegisterHandler(c *gin.Context) {
 		Msg: "注册成功，并已自动登录！",
 	})
 }
+
+func UserLogoutHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, vo.NewSuccessResp("退出登录成功"))
+}
