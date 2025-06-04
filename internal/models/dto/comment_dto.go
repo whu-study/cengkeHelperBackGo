@@ -1,6 +1,9 @@
 package dto
 
-import "time"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 // GetCommentsParamsDTO 对应前端 GetCommentsParams，用于获取评论列表的查询参数
 type GetCommentsParamsDTO struct {
@@ -38,6 +41,7 @@ type Comment struct {
 
 	Children []*Comment `gorm:"foreignKey:ParentID" json:"children,omitempty"` // 嵌套的子回复列表
 
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 	// IsDeleted bool `gorm:"default:false;comment:是否已删除 (用于软删除)" json:"-"` // 软删除标记
 }
 

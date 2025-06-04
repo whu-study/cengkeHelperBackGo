@@ -2,6 +2,7 @@ package dto
 
 import (
 	"gorm.io/datatypes" // 导入 GORM 的 datatypes 包
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -63,6 +64,8 @@ type Post struct {
 	// LastCommentUser   User       `gorm:"foreignKey:LastCommentUserID" json:"lastCommentUser,omitempty"`
 
 	Comments []Comment `gorm:"foreignKey:PostID" json:"comments,omitempty"` // 帖子的评论列表
+
+	DeletedAt gorm.DeletedAt `gorm:"index"` // 软删除标记
 }
 
 // TableName 自定义 Post 模型对应的表名
