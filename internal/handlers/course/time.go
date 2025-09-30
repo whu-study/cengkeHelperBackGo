@@ -9,12 +9,15 @@ func GetTeachInfos() [][]BuildingTeachInfos {
 }
 
 func CurCourseTime() (weekNum int, weekday int, lessonNum int) {
-	//now := time.Now()
-	now := time.Date(2024, time.September, 10,
-		14, 00, 0, 0, time.Local)
+	now := time.Now()
+	// now := time.Date(2024, time.September, 10,
+	// 14, 00, 0, 0, time.Local)
 	// 计算第几周
-	beginDate := time.Date(2024, time.September, 9,
+	// beginDate := time.Date(2024, time.September, 9,
+	// 	0, 0, 0, 0, time.Local)
+	beginDate := time.Date(2025, time.September, 8,
 		0, 0, 0, 0, time.Local)
+	// 计算两个日期的差值
 
 	sub := now.Sub(beginDate)
 	durationDay := int(sub.Hours()) / 24
