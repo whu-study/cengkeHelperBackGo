@@ -4,6 +4,7 @@ import (
 	"cengkeHelperBackGo/internal/config"
 	database "cengkeHelperBackGo/internal/db"
 	"crypto/rand"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"math/big"
@@ -66,9 +67,22 @@ func (e *EmailService) SendVerificationCode(email string) (string, error) {
 		config.Conf.Email.Password,
 	)
 
+	// 启用TLS加密
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+
+	// 添加调试日志
+	log.Printf("尝试连接SMTP服务器: %s:%d, 用户: %s",
+		config.Conf.Email.SmtpHost,
+		config.Conf.Email.SmtpPort,
+		config.Conf.Email.Username)
+
 	// 发送邮件
 	if err := d.DialAndSend(m); err != nil {
 		log.Printf("发送邮件失败: %v", err)
+		log.Printf("SMTP配置: 主机=%s, 端口=%d, 用户名=%s",
+			config.Conf.Email.SmtpHost,
+			config.Conf.Email.SmtpPort,
+			config.Conf.Email.Username)
 		return "", fmt.Errorf("发送邮件失败: %v", err)
 	}
 
