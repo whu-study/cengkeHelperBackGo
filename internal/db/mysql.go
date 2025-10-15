@@ -4,6 +4,7 @@ import (
 	"cengkeHelperBackGo/internal/config"
 	"cengkeHelperBackGo/internal/models/dto"
 	"fmt"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
@@ -33,6 +34,9 @@ func init() {
 	}
 
 	TableAutoMigrate()
+
+	// 初始化Redis连接
+	InitRedis()
 }
 
 func TableAutoMigrate() {

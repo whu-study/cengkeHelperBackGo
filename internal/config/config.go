@@ -3,10 +3,11 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+
+	"github.com/fsnotify/fsnotify"
+	"gopkg.in/yaml.v3"
 )
 
 // Conf 定义配置结构体
@@ -22,6 +23,19 @@ var Conf struct {
 	Server struct {
 		Port string `yaml:"port" json:"port"`
 	} `yaml:"server" json:"server"`
+	Email struct {
+		SmtpHost string `yaml:"smtp_host" json:"smtpHost"`
+		SmtpPort int    `yaml:"smtp_port" json:"smtpPort"`
+		Username string `yaml:"username" json:"username"`
+		Password string `yaml:"password" json:"password"`
+		FromName string `yaml:"from_name" json:"fromName"`
+	} `yaml:"email" json:"email"`
+	Redis struct {
+		Host     string `yaml:"host" json:"host"`
+		Port     int    `yaml:"port" json:"port"`
+		Password string `yaml:"password" json:"password"`
+		DB       int    `yaml:"db" json:"db"`
+	} `yaml:"redis" json:"redis"`
 	JwtSecurityKey string `yaml:"jwt_security_key" json:"jwtSecurityKey"`
 }
 

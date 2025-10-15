@@ -3,10 +3,14 @@ package auth
 import (
 	database "cengkeHelperBackGo/internal/db"
 	"cengkeHelperBackGo/internal/models/dto"
+	"cengkeHelperBackGo/internal/services"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"log"
+
+	"golang.org/x/crypto/bcrypt"
 )
+
+var emailService = services.NewEmailService()
 
 func checkUser(email string, password string) (dto.User, bool) {
 	var user dto.User
@@ -25,6 +29,12 @@ func checkUser(email string, password string) (dto.User, bool) {
 	return user, true // 密码匹配, 返回用户信息
 }
 
+// SendEmailCode 发送邮箱验证码
+func SendEmailCode(email string) (string, error) {
+	return emailService.SendVerificationCode(email)
+}
+
+// checkEmailCode 验证邮箱验证码
 func checkEmailCode(email, emailCode string) bool {
-	return emailCode == "123456"
+	return emailService.VerifyEmailCode(email, emailCode)
 }

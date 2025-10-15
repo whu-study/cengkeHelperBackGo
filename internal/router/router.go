@@ -5,9 +5,10 @@ import (
 	"cengkeHelperBackGo/internal/handlers"
 	"cengkeHelperBackGo/internal/handlers/auth"
 	"cengkeHelperBackGo/internal/handlers/course"
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"time"
 )
 
 var app *gin.Engine
@@ -23,6 +24,7 @@ func Routers() *gin.Engine {
 		v1.POST("/auth/user-login", auth.UserLoginHandler)
 		v1.POST("/auth/user-register", auth.UserRegisterHandler)
 		v1.POST("/auth/user-logout", auth.UserLogoutHandler)
+		v1.POST("/auth/send-email-code", auth.SendEmailCodeHandler) // 添加发送验证码接口
 		v1.GET("/courses", courseHandler.GetCoursesHandler)
 		v1.GET("/courses/:courseId", courseHandler.GetCourseDetailHandler)
 		v1.GET("/posts/comments/:postId", commentHandler.GetCommentsByPostID) // GET /api/v1/posts/:id/comments (获取帖子的评论)

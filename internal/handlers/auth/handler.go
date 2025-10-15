@@ -7,12 +7,13 @@ import (
 	"cengkeHelperBackGo/internal/models/vo"
 	"cengkeHelperBackGo/pkg/utils"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt" // 如果 UserRegisterHandler 在同一个文件并且使用它，则保留
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt" // 如果 UserRegisterHandler 在同一个文件并且使用它，则保留
 )
 
 func UserLoginHandler(c *gin.Context) {
@@ -169,7 +170,7 @@ func UserRegisterHandler(c *gin.Context) {
 
 	if result := database.Client.Create(&newUser); result.Error != nil {
 		log.Printf("创建用户时出错: %v", result.Error)
-		c.JSON(http.StatusBadRequest, vo.NewBadResp(err.Error()))
+		c.JSON(http.StatusBadRequest, vo.NewBadResp(result.Error.Error()))
 		return
 	}
 
@@ -201,4 +202,59 @@ func UserRegisterHandler(c *gin.Context) {
 
 func UserLogoutHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, vo.NewSuccessResp("退出登录成功"))
+}
+
+// SendEmailCodeHandler 发送邮箱验证码
+func SendEmailCodeHandler(c *gin.Context) {
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, vo.NewBadResp("请求参数错误: "+err.Error()))
+		return
+	}
+
+	// 检查邮箱是否已被注册（可选，根据业务需求决定）
+	var emailCount int64
+	if err := database.Client.Model(&dto.User{}).
+		Where("email = ?", req.Email).
+		Count(&emailCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, vo.NewBadResp("数据库查询错误"))
+		return
+	}
+
+	if emailCount > 0 {
+		c.JSON(http.StatusBadRequest, vo.RespData{
+			Code: config.CodeEmailExists,
+			Msg:  "该邮箱已被注册",
+		})
+		return
+	}
+
+	// 发送验证码
+	code, err := SendEmailCode(req.Email)
+	if err != nil {
+		log.Printf("发送验证码失败: %v", err)
+		c.JSON(http.StatusInternalServerError, vo.NewBadResp("发送验证码失败，请稍后重试"))
+		return
+	}
+
+	log.Printf("验证码已发送到邮箱: %s", req.Email)
+
+	// 注意：在生产环境中不应该返回验证码，这里只是为了测试方便
+	response := gin.H{
+		"message": "验证码已发送到您的邮箱，请查收",
+	}
+
+	// 如果是开发环境或测试环境，可以在响应中包含验证码
+	if gin.Mode() == gin.DebugMode {
+		response["code"] = code // 仅用于开发测试
+	}
+
+	c.JSON(http.StatusOK, vo.RespData{
+		Code: config.CodeSuccess,
+		Data: response,
+		Msg:  "验证码发送成功",
+	})
 }

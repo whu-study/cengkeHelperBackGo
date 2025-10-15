@@ -8,3 +8,14 @@ mysql:
 server:
   port: 8080
 jwt_security_key: 1234567890abcdef
+email:
+  smtp_host: smtp.qq.com
+  smtp_port: 587
+  username: your_email@qq.com  # 请替换为你的QQ邮箱
+  password: your_app_password   # 请替换为你的QQ邮箱授权码
+  from_name: 蹭课小助手
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
