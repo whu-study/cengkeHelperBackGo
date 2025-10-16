@@ -5,9 +5,10 @@ import (
 	"cengkeHelperBackGo/internal/models/vo"
 	"cengkeHelperBackGo/pkg/utils"
 	"errors"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"net/http"
 )
 
 func UserAuthChecker() gin.HandlerFunc {
