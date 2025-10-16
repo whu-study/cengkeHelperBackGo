@@ -61,24 +61,24 @@ func (h *CourseHandler) GetCoursesHandler(c *gin.Context) {
 
 // GetStructuredCoursesHandler godoc
 // @Summary 获取结构化的课程数据（学部 → 教学楼 → 楼层 → 课程）
-// @Description 获取按照四级结构组织的课程数据，包含学部、教学楼、楼层和课程的完整层次信息。支持通过查询参数过滤
+// @Description 获取按照四级结构组织的课程数据。默认返回当前时间的课程。参数说明：-1表示不限（查询所有），0或不传表示使用当前时间
 // @Tags Courses
 // @Accept json
 // @Produce json
-// @Param weekNum query int false "周次（-1表示不限）"
-// @Param weekday query int false "星期几（0-6，-1表示不限）"
-// @Param lessonNum query int false "节次（1-13，-1表示不限）"
-// @Param divisionId query int false "学部ID（1-4）"
+// @Param weekNum query int false "周次（-1=不限, 0或不传=当前周次）"
+// @Param weekday query int false "星期几（-1=不限, 0或不传=当前星期）"
+// @Param lessonNum query int false "节次（-1=不限, 0或不传=当前节次）"
+// @Param divisionId query int false "学部ID（1-4，不传表示所有学部）"
 // @Param useCache query bool false "是否使用缓存（默认true）"
 // @Success 200 {object} vo.RespData{data=[]vo.DivisionVO} "成功"
 // @Failure 500 {object} vo.RespData "服务器内部错误"
 // @Router /courses/structured [get]
 func (h *CourseHandler) GetStructuredCoursesHandler(c *gin.Context) {
-	// 解析查询参数
+	// 解析查询参数，默认值为0（表示使用当前时间）
 	params := &services.CourseQueryParams{
-		WeekNum:   -1,
-		Weekday:   -1,
-		LessonNum: -1,
+		WeekNum:   0, // 0 表示使用当前周次
+		Weekday:   0, // 0 表示使用当前星期
+		LessonNum: 0, // 0 表示使用当前节次
 		UseCache:  true,
 	}
 

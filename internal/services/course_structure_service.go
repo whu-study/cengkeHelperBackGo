@@ -25,23 +25,93 @@ func NewCourseStructureService() *CourseStructureService {
 
 // CourseQueryParams 课程查询参数
 type CourseQueryParams struct {
-	WeekNum    int  // 周次，-1 表示不限
-	Weekday    int  // 星期几，-1 表示不限
-	LessonNum  int  // 节次，-1 表示不限
+	WeekNum    int  // 周次，-1 表示不限，0 表示使用当前时间
+	Weekday    int  // 星期几，-1 表示不限，0 表示使用当前时间
+	LessonNum  int  // 节次，-1 表示不限，0 表示使用当前时间
 	DivisionID *int // 学部ID (1-4)，nil 表示不限
 	UseCache   bool // 是否使用缓存
+}
+
+// GetCurrentCourseTime 获取当前的课程时间（周次、星期、节次）
+func (s *CourseStructureService) GetCurrentCourseTime() (weekNum int, weekday int, lessonNum int) {
+	now := time.Now()
+	// 计算第几周（学期开始日期：2025年9月8日）
+	beginDate := time.Date(2025, time.September, 8, 0, 0, 0, 0, time.Local)
+	sub := now.Sub(beginDate)
+	durationDay := int(sub.Hours()) / 24
+	weekNum = durationDay/7 + 1
+
+	// 计算周几（0=周日, 1=周一, ..., 6=周六）
+	weekday = int(now.Weekday())
+
+	// 计算第几节课
+	hour := now.Hour()
+	minute := now.Minute()
+
+	switch {
+	case hour < 7 || (hour == 7 && minute < 50):
+		lessonNum = -1 // 早上还没开始上课
+	case hour < 8 || (hour == 8 && minute < 45):
+		lessonNum = 1
+	case hour < 9 || (hour == 9 && minute < 35):
+		lessonNum = 2
+	case hour < 10 || (hour == 10 && minute < 35):
+		lessonNum = 3
+	case hour < 11 || (hour == 11 && minute < 25):
+		lessonNum = 4
+	case hour < 12 || (hour == 12 && minute < 15):
+		lessonNum = 5
+	case hour < 13 || (hour == 13 && minute < 55):
+		lessonNum = -1 // 中午休息
+	case hour < 14 || (hour == 14 && minute < 50):
+		lessonNum = 6
+	case hour < 15 || (hour == 15 && minute < 40):
+		lessonNum = 7
+	case hour < 16 || (hour == 16 && minute < 35):
+		lessonNum = 8
+	case hour < 17 || (hour == 17 && minute < 25):
+		lessonNum = 9
+	case hour < 18 || (hour == 18 && minute < 15):
+		lessonNum = 10
+	case hour < 18 || (hour == 18 && minute < 20):
+		lessonNum = -1 // 晚饭时间
+	case hour < 19 || (hour == 19 && minute < 15):
+		lessonNum = 11
+	case hour < 20 || (hour == 20 && minute < 5):
+		lessonNum = 12
+	case hour < 20 || (hour == 20 && minute < 55):
+		lessonNum = 13
+	default:
+		lessonNum = -1 // 晚上没课了
+	}
+
+	return weekNum, weekday, lessonNum
 }
 
 // GetStructuredCourses 获取结构化的课程数据（学部 → 教学楼 → 楼层 → 课程）
 // 默认返回当前时间的课程
 func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams) ([]vo.DivisionVO, error) {
-	// 如果没有传参数，使用默认参数（当前时间）
+	// 如果没有传参数，使用当前时间
 	if params == nil {
+		weekNum, weekday, lessonNum := s.GetCurrentCourseTime()
 		params = &CourseQueryParams{
-			WeekNum:   -1,
-			Weekday:   -1,
-			LessonNum: -1,
+			WeekNum:   weekNum,
+			Weekday:   weekday,
+			LessonNum: lessonNum,
 			UseCache:  true,
+		}
+	} else {
+		// 如果参数中某些值为 0，表示使用当前时间
+		currentWeekNum, currentWeekday, currentLessonNum := s.GetCurrentCourseTime()
+
+		if params.WeekNum == 0 {
+			params.WeekNum = currentWeekNum
+		}
+		if params.Weekday == 0 {
+			params.Weekday = currentWeekday
+		}
+		if params.LessonNum == 0 {
+			params.LessonNum = currentLessonNum
 		}
 	}
 
@@ -49,6 +119,7 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 	if params.UseCache {
 		cacheKey := s.getCacheKey(params)
 		if cachedData, err := s.getFromCache(cacheKey); err == nil && cachedData != nil {
+			log.Printf("从缓存获取课程数据: %s", cacheKey)
 			return cachedData, nil
 		}
 	}
@@ -62,8 +133,8 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 		query = query.Where("area = ?", *params.DivisionID)
 	}
 
-	// 添加星期过滤
-	if params.Weekday != -1 {
+	// 添加星期过滤（只有当weekday >= 0时才过滤）
+	if params.Weekday >= 0 {
 		query = query.Where("day_of_week = ?", params.Weekday)
 	}
 
