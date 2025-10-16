@@ -358,6 +358,52 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 	return result, nil
 }
 
+// GetEmptyDivisionStructure 获取空的学部结构（保留学部层级，但buildings为空）
+// 用于非上课时间或没有课程数据时返回基本的学部框架
+func (s *CourseStructureService) GetEmptyDivisionStructure(divisionID *int) []vo.DivisionVO {
+	// 学部名称映射（根据Area字段）
+	divisionNames := map[uint8]string{
+		1: "文理学部",
+		2: "信息学部",
+		3: "工学部",
+		4: "医学部",
+	}
+
+	var result []vo.DivisionVO
+
+	if divisionID != nil {
+		// 只返回指定学部
+		if *divisionID >= 1 && *divisionID <= 4 {
+			divisionName := divisionNames[uint8(*divisionID)]
+			result = append(result, vo.DivisionVO{
+				DivisionID:     fmt.Sprintf("division_%d", *divisionID),
+				DivisionName:   divisionName,
+				Description:    fmt.Sprintf("%s教学区域", divisionName),
+				TotalBuildings: 0,
+				TotalFloors:    0,
+				TotalCourses:   0,
+				Buildings:      []vo.BuildingVO{},
+			})
+		}
+	} else {
+		// 返回所有学部
+		for i := 1; i <= 4; i++ {
+			divisionName := divisionNames[uint8(i)]
+			result = append(result, vo.DivisionVO{
+				DivisionID:     fmt.Sprintf("division_%d", i),
+				DivisionName:   divisionName,
+				Description:    fmt.Sprintf("%s教学区域", divisionName),
+				TotalBuildings: 0,
+				TotalFloors:    0,
+				TotalCourses:   0,
+				Buildings:      []vo.BuildingVO{},
+			})
+		}
+	}
+
+	return result
+}
+
 // getCacheKey 生成缓存键
 func (s *CourseStructureService) getCacheKey(params *CourseQueryParams) string {
 	divisionStr := "all"

@@ -165,9 +165,9 @@ func (h *CourseHandler) GetStructuredCoursesHandler(c *gin.Context) {
 	if params.LessonNum == 0 {
 		_, _, lessonNum := h.courseStructureService.GetCurrentCourseTime()
 		if lessonNum == -1 {
-			// 返回空数组，提示非上课时间
-			emptyData := []vo.DivisionVO{}
-			vo.RespondSuccess(c, "当前是非上课时间，暂无课程", emptyData)
+			// 返回包含学部结构但buildings为空的数据，而不是完全空的数组
+			emptyData := h.courseStructureService.GetEmptyDivisionStructure(params.DivisionID)
+			vo.RespondSuccess(c, "当前是非上课时间，显示学部结构", emptyData)
 			return
 		}
 	}
