@@ -138,6 +138,18 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 		query = query.Where("day_of_week = ?", params.Weekday)
 	}
 
+	// 添加周次过滤（使用位运算）
+	if params.WeekNum > 0 {
+		// 周次存储在高位，使用位运算检查：(week_and_time & (1 << (32 - weekNum))) != 0
+		query = query.Where("(week_and_time & (1 << (32 - ?))) != 0", params.WeekNum)
+	}
+
+	// 添加节次过滤（使用位运算）
+	if params.LessonNum > 0 {
+		// 节次存储在低位，使用位运算检查：(week_and_time & (1 << (lessonNum - 1))) != 0
+		query = query.Where("(week_and_time & (1 << (? - 1))) != 0", params.LessonNum)
+	}
+
 	if err := query.Find(&timeInfos).Error; err != nil {
 		log.Printf("查询时间信息失败: %v", err)
 		return nil, fmt.Errorf("查询课程时间信息失败: %w", err)
@@ -179,12 +191,7 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 	addedCourses := make(map[string]bool)
 
 	for _, timeInfo := range timeInfos {
-		// 如果指定了周次和节次，进行二进制匹配过滤
-		if params.WeekNum != -1 || params.LessonNum != -1 {
-			if !generator.IsWeekLessonMatch(params.WeekNum, params.LessonNum, timeInfo.WeekAndTime) {
-				continue
-			}
-		}
+		// 数据库已经通过位运算过滤了周次和节次，不需要在内存中再次过滤
 
 		course, exists := courseMap[timeInfo.CourseInfoId]
 		if !exists {
