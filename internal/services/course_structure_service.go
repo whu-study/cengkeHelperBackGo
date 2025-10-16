@@ -205,8 +205,9 @@ func (s *CourseStructureService) GetStructuredCourses() ([]vo.DivisionVO, error)
 
 // normalizeBuilding 规范化教学楼名称作为ID的一部分
 func (s *CourseStructureService) normalizeBuilding(building string) string {
-	// 移除空格和特殊字符，转换为小写
-	reg := regexp.MustCompile(`[^a-zA-Z0-9\u4e00-\u9fa5]+`)
+	// 移除空格和特殊字符，保留字母、数字和中文
+	// Go 的正则表达式使用 \p{Han} 匹配中文字符
+	reg := regexp.MustCompile(`[^\p{Han}a-zA-Z0-9]+`)
 	normalized := reg.ReplaceAllString(building, "_")
 	return strings.ToLower(normalized)
 }
