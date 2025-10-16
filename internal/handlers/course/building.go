@@ -45,11 +45,11 @@ type BuildingTeachInfos struct {
 
 var RespTeachInfos = make([][]BuildingTeachInfos, 5)
 
-func searchByAreaAndWeekday(areaNum int, weekday int) []MapTeachInfo {
+func searchByAreaAndWeekday(areaNum int, weekday int, weekNum int, lessonNum int) []MapTeachInfo {
 	tempInfo := make([]MapTeachInfo, 0)
 	if err := database.Client.
 		Raw(queryStr,
-			weekday, areaNum).
+			weekday, areaNum, weekNum, weekNum, lessonNum, lessonNum).
 		Find(&tempInfo).Error; err != nil {
 		log.Fatal(err)
 	}
@@ -65,11 +65,8 @@ func getInfos(weekNum, weekday, lessonNum int) [][]BuildingTeachInfos {
 	for i := 1; i <= 4; i++ {
 		buildingMap := make(map[string][]RespTeachInfo)
 
-		for _, info := range searchByAreaAndWeekday(i, weekday) {
-			if !generator.IsWeekLessonMatch(weekNum, lessonNum, info.WeekAndTime) {
-				continue
-			}
-
+		for _, info := range searchByAreaAndWeekday(i, weekday, weekNum, lessonNum) {
+			// 数据库已经完成过滤，不再需要内存中的二次过滤
 			res := RespTeachInfo{
 				ID:           info.ID,
 				Room:         info.Classroom,

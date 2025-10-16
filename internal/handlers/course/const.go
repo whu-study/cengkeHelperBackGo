@@ -15,7 +15,10 @@ var queryStr = `
             MAX(ti.day_of_week) AS day_of_week
         FROM time_infos ti 
         JOIN course_infos ci ON ci.id = ti.course_info_id
-        WHERE ti.day_of_week = ? AND ti.area = ? 
+        WHERE ti.day_of_week = ? 
+          AND ti.area = ? 
+          AND (? = -1 OR (ti.week_and_time & (1 << (32 - ?))) != 0)
+          AND (? = -1 OR (ti.week_and_time & (1 << (? - 1))) != 0)
         GROUP BY 
             ti.building, 
             ti.classroom,
