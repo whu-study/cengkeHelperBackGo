@@ -5,7 +5,6 @@ type DivisionVO struct {
 	DivisionID     string       `json:"divisionId"`
 	DivisionName   string       `json:"divisionName"`
 	Description    string       `json:"description"`
-	Icon           string       `json:"icon"`
 	TotalBuildings int          `json:"totalBuildings"`
 	TotalFloors    int          `json:"totalFloors"`
 	TotalCourses   int          `json:"totalCourses"`

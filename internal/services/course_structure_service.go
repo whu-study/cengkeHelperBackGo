@@ -211,7 +211,6 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 				DivisionID:   divisionID,
 				DivisionName: divisionName,
 				Description:  fmt.Sprintf("%s教学区域", divisionName),
-				Icon:         fmt.Sprintf("/assets/icons/%s.svg", divisionID),
 				Buildings:    []vo.BuildingVO{},
 			}
 			divisionMap[divisionID] = division
