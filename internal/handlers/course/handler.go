@@ -6,8 +6,10 @@ import (
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo"
 	"cengkeHelperBackGo/internal/services"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -57,6 +59,48 @@ func (h *CourseHandler) GetCoursesHandler(c *gin.Context) {
 	infos := GetTeachInfos()
 	// 假设 vo.RespondSuccess 存在
 	vo.RespondSuccess(c, "课程数据获取成功", infos)
+}
+
+// GetCurrentCourseTimeHandler godoc
+// @Summary 获取当前课程时间信息
+// @Description 获取当前的周次、星期几、节次等时间信息
+// @Tags Courses
+// @Accept json
+// @Produce json
+// @Success 200 {object} vo.RespData{data=vo.CurrentCourseTimeVO} "成功"
+// @Router /courses/current-time [get]
+func (h *CourseHandler) GetCurrentCourseTimeHandler(c *gin.Context) {
+	weekNum, weekday, lessonNum := h.courseStructureService.GetCurrentCourseTime()
+
+	// 星期名称映射
+	weekdayNames := map[int]string{
+		0: "周日",
+		1: "周一",
+		2: "周二",
+		3: "周三",
+		4: "周四",
+		5: "周五",
+		6: "周六",
+	}
+
+	// 节次状态描述
+	var lessonStatus string
+	if lessonNum == -1 {
+		lessonStatus = "非上课时间"
+	} else {
+		lessonStatus = fmt.Sprintf("第%d节", lessonNum)
+	}
+
+	timeInfo := vo.CurrentCourseTimeVO{
+		WeekNum:      weekNum,
+		Weekday:      weekday,
+		WeekdayName:  weekdayNames[weekday],
+		LessonNum:    lessonNum,
+		LessonStatus: lessonStatus,
+		Timestamp:    time.Now().Unix(),
+	}
+
+	vo.RespondSuccess(c, "当前课程时间获取成功", timeInfo)
 }
 
 // GetStructuredCoursesHandler godoc

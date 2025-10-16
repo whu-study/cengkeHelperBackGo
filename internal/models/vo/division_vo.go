@@ -51,3 +51,13 @@ type TimeSlotVO struct {
 	EndPeriod   int    `json:"endPeriod"`   // 结束节次
 	Weeks       string `json:"weeks"`       // 周次范围，如 "1-16周"
 }
+
+// CurrentCourseTimeVO 当前课程时间信息VO
+type CurrentCourseTimeVO struct {
+	WeekNum      int    `json:"weekNum"`      // 当前周次
+	Weekday      int    `json:"weekday"`      // 星期几 (0-6)
+	WeekdayName  string `json:"weekdayName"`  // 星期名称（如"周一"）
+	LessonNum    int    `json:"lessonNum"`    // 当前节次（-1表示非上课时间）
+	LessonStatus string `json:"lessonStatus"` // 节次状态描述（如"第3节"或"非上课时间"）
+	Timestamp    int64  `json:"timestamp"`    // 当前时间戳
+}
