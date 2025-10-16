@@ -6,20 +6,23 @@ import (
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo"
 	"cengkeHelperBackGo/internal/services"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 // CourseHandler 处理课程相关的HTTP请求
 type CourseHandler struct {
-	courseService *services.CourseService
+	courseService          *services.CourseService
+	courseStructureService *services.CourseStructureService
 }
 
 // NewCourseHandler 创建一个新的 CourseHandler
 func NewCourseHandler() *CourseHandler {
 	return &CourseHandler{
-		courseService: services.NewCourseService(),
+		courseService:          services.NewCourseService(),
+		courseStructureService: services.NewCourseStructureService(),
 	}
 }
 
@@ -54,6 +57,24 @@ func (h *CourseHandler) GetCoursesHandler(c *gin.Context) {
 	infos := GetTeachInfos()
 	// 假设 vo.RespondSuccess 存在
 	vo.RespondSuccess(c, "课程数据获取成功", infos)
+}
+
+// GetStructuredCoursesHandler godoc
+// @Summary 获取结构化的课程数据（学部 → 教学楼 → 楼层 → 课程）
+// @Description 获取按照四级结构组织的课程数据，包含学部、教学楼、楼层和课程的完整层次信息
+// @Tags Courses
+// @Accept json
+// @Produce json
+// @Success 200 {object} vo.RespData{data=[]vo.DivisionVO} "成功"
+// @Failure 500 {object} vo.RespData "服务器内部错误"
+// @Router /courses/structured [get]
+func (h *CourseHandler) GetStructuredCoursesHandler(c *gin.Context) {
+	divisions, err := h.courseStructureService.GetStructuredCourses()
+	if err != nil {
+		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "获取课程数据失败", err)
+		return
+	}
+	vo.RespondSuccess(c, "课程数据获取成功", divisions)
 }
 
 // GetCourseDetailHandler godoc
