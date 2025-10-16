@@ -61,15 +61,63 @@ func (h *CourseHandler) GetCoursesHandler(c *gin.Context) {
 
 // GetStructuredCoursesHandler godoc
 // @Summary 获取结构化的课程数据（学部 → 教学楼 → 楼层 → 课程）
-// @Description 获取按照四级结构组织的课程数据，包含学部、教学楼、楼层和课程的完整层次信息
+// @Description 获取按照四级结构组织的课程数据，包含学部、教学楼、楼层和课程的完整层次信息。支持通过查询参数过滤
 // @Tags Courses
 // @Accept json
 // @Produce json
+// @Param weekNum query int false "周次（-1表示不限）"
+// @Param weekday query int false "星期几（0-6，-1表示不限）"
+// @Param lessonNum query int false "节次（1-13，-1表示不限）"
+// @Param divisionId query int false "学部ID（1-4）"
+// @Param useCache query bool false "是否使用缓存（默认true）"
 // @Success 200 {object} vo.RespData{data=[]vo.DivisionVO} "成功"
 // @Failure 500 {object} vo.RespData "服务器内部错误"
 // @Router /courses/structured [get]
 func (h *CourseHandler) GetStructuredCoursesHandler(c *gin.Context) {
-	divisions, err := h.courseStructureService.GetStructuredCourses()
+	// 解析查询参数
+	params := &services.CourseQueryParams{
+		WeekNum:   -1,
+		Weekday:   -1,
+		LessonNum: -1,
+		UseCache:  true,
+	}
+
+	// 解析 weekNum
+	if weekNumStr := c.Query("weekNum"); weekNumStr != "" {
+		if weekNum, err := strconv.Atoi(weekNumStr); err == nil {
+			params.WeekNum = weekNum
+		}
+	}
+
+	// 解析 weekday
+	if weekdayStr := c.Query("weekday"); weekdayStr != "" {
+		if weekday, err := strconv.Atoi(weekdayStr); err == nil {
+			params.Weekday = weekday
+		}
+	}
+
+	// 解析 lessonNum
+	if lessonNumStr := c.Query("lessonNum"); lessonNumStr != "" {
+		if lessonNum, err := strconv.Atoi(lessonNumStr); err == nil {
+			params.LessonNum = lessonNum
+		}
+	}
+
+	// 解析 divisionId
+	if divisionIDStr := c.Query("divisionId"); divisionIDStr != "" {
+		if divisionID, err := strconv.Atoi(divisionIDStr); err == nil {
+			params.DivisionID = &divisionID
+		}
+	}
+
+	// 解析 useCache
+	if useCacheStr := c.Query("useCache"); useCacheStr != "" {
+		if useCache, err := strconv.ParseBool(useCacheStr); err == nil {
+			params.UseCache = useCache
+		}
+	}
+
+	divisions, err := h.courseStructureService.GetStructuredCourses(params)
 	if err != nil {
 		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "获取课程数据失败", err)
 		return

@@ -5,12 +5,14 @@ import (
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo"
 	"cengkeHelperBackGo/pkg/generator"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // CourseStructureService 课程结构化数据服务
@@ -21,19 +23,68 @@ func NewCourseStructureService() *CourseStructureService {
 	return &CourseStructureService{}
 }
 
+// CourseQueryParams 课程查询参数
+type CourseQueryParams struct {
+	WeekNum    int  // 周次，-1 表示不限
+	Weekday    int  // 星期几，-1 表示不限
+	LessonNum  int  // 节次，-1 表示不限
+	DivisionID *int // 学部ID (1-4)，nil 表示不限
+	UseCache   bool // 是否使用缓存
+}
+
 // GetStructuredCourses 获取结构化的课程数据（学部 → 教学楼 → 楼层 → 课程）
-func (s *CourseStructureService) GetStructuredCourses() ([]vo.DivisionVO, error) {
-	// 获取所有课程和时间信息
+// 默认返回当前时间的课程
+func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams) ([]vo.DivisionVO, error) {
+	// 如果没有传参数，使用默认参数（当前时间）
+	if params == nil {
+		params = &CourseQueryParams{
+			WeekNum:   -1,
+			Weekday:   -1,
+			LessonNum: -1,
+			UseCache:  true,
+		}
+	}
+
+	// 尝试从缓存获取
+	if params.UseCache {
+		cacheKey := s.getCacheKey(params)
+		if cachedData, err := s.getFromCache(cacheKey); err == nil && cachedData != nil {
+			return cachedData, nil
+		}
+	}
+
+	// 构建查询条件
 	var timeInfos []dto.TimeInfo
-	if err := database.Client.Find(&timeInfos).Error; err != nil {
+	query := database.Client.Model(&dto.TimeInfo{})
+
+	// 添加学部过滤
+	if params.DivisionID != nil {
+		query = query.Where("area = ?", *params.DivisionID)
+	}
+
+	// 添加星期过滤
+	if params.Weekday != -1 {
+		query = query.Where("day_of_week = ?", params.Weekday)
+	}
+
+	if err := query.Find(&timeInfos).Error; err != nil {
 		log.Printf("查询时间信息失败: %v", err)
 		return nil, fmt.Errorf("查询课程时间信息失败: %w", err)
 	}
 
+	// 获取课程ID列表
+	courseIDs := make([]uint32, 0, len(timeInfos))
+	for _, ti := range timeInfos {
+		courseIDs = append(courseIDs, ti.CourseInfoId)
+	}
+
+	// 只查询需要的课程信息
 	var courses []dto.CourseInfo
-	if err := database.Client.Find(&courses).Error; err != nil {
-		log.Printf("查询课程信息失败: %v", err)
-		return nil, fmt.Errorf("查询课程信息失败: %w", err)
+	if len(courseIDs) > 0 {
+		if err := database.Client.Where("id IN ?", courseIDs).Find(&courses).Error; err != nil {
+			log.Printf("查询课程信息失败: %v", err)
+			return nil, fmt.Errorf("查询课程信息失败: %w", err)
+		}
 	}
 
 	// 创建课程ID到课程的映射
@@ -53,11 +104,28 @@ func (s *CourseStructureService) GetStructuredCourses() ([]vo.DivisionVO, error)
 		4: "医学部",
 	}
 
+	// 课程去重：使用 courseID + classroom 作为唯一键
+	addedCourses := make(map[string]bool)
+
 	for _, timeInfo := range timeInfos {
+		// 如果指定了周次和节次，进行二进制匹配过滤
+		if params.WeekNum != -1 || params.LessonNum != -1 {
+			if !generator.IsWeekLessonMatch(params.WeekNum, params.LessonNum, timeInfo.WeekAndTime) {
+				continue
+			}
+		}
+
 		course, exists := courseMap[timeInfo.CourseInfoId]
 		if !exists {
 			continue
 		}
+
+		// 去重：同一门课在同一教室只添加一次
+		courseKey := fmt.Sprintf("%d_%s", course.ID, timeInfo.Classroom)
+		if addedCourses[courseKey] {
+			continue
+		}
+		addedCourses[courseKey] = true
 
 		// 获取或创建学部
 		divisionID := fmt.Sprintf("division_%d", timeInfo.Area)
@@ -200,7 +268,48 @@ func (s *CourseStructureService) GetStructuredCourses() ([]vo.DivisionVO, error)
 		result = append(result, *division)
 	}
 
+	// 存入缓存（5分钟过期）
+	if params.UseCache {
+		cacheKey := s.getCacheKey(params)
+		_ = s.saveToCache(cacheKey, result, 5*time.Minute)
+	}
+
 	return result, nil
+}
+
+// getCacheKey 生成缓存键
+func (s *CourseStructureService) getCacheKey(params *CourseQueryParams) string {
+	divisionStr := "all"
+	if params.DivisionID != nil {
+		divisionStr = fmt.Sprintf("%d", *params.DivisionID)
+	}
+	return fmt.Sprintf("course_structure:%s:w%d:d%d:l%d",
+		divisionStr, params.WeekNum, params.Weekday, params.LessonNum)
+}
+
+// getFromCache 从Redis缓存获取数据
+func (s *CourseStructureService) getFromCache(key string) ([]vo.DivisionVO, error) {
+	ctx := context.Background()
+	val, err := database.RedisClient.Get(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []vo.DivisionVO
+	if err := json.Unmarshal([]byte(val), &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// saveToCache 保存数据到Redis缓存
+func (s *CourseStructureService) saveToCache(key string, data []vo.DivisionVO, expiration time.Duration) error {
+	ctx := context.Background()
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return database.RedisClient.Set(ctx, key, jsonData, expiration).Err()
 }
 
 // normalizeBuilding 规范化教学楼名称作为ID的一部分
