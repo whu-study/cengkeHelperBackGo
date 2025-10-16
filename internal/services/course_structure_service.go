@@ -285,6 +285,9 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 		// 解析时间段
 		timeSlots := s.parseTimeSlots(timeInfo)
 
+		// 生成课程时间文本（如 "1-2节"）
+		courseTime := s.formatCourseTime(timeInfo, params.LessonNum)
+
 		// 添加课程信息
 		courseVO := vo.CourseInfoVO{
 			ID:            course.ID,
@@ -297,6 +300,7 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 			CourseType:    course.CourseType,
 			Room:          timeInfo.Classroom,
 			TimeSlots:     timeSlots,
+			CourseTime:    courseTime, // 填充课程时间文本
 			Description:   course.Description,
 			AverageRating: course.AverageRating,
 			ReviewCount:   course.ReviewCount,
@@ -500,4 +504,36 @@ func (s *CourseStructureService) getRoomFacilities(facilitiesJSON string) []stri
 		return []string{}
 	}
 	return facilities
+}
+
+// formatCourseTime 生成课程时间文本
+func (s *CourseStructureService) formatCourseTime(timeInfo dto.TimeInfo, lessonNum int) string {
+	// 从二进制数据中提取周次和节次
+	weeks, lessons := generator.Bin2WeekLesson(timeInfo.WeekAndTime)
+
+	// 处理当前时间的课程（周次为0）
+	if timeInfo.WeekAndTime == 0 {
+		return "当前时间"
+	}
+
+	// 课程节次范围
+	startPeriod := lessons[0]
+	endPeriod := lessons[len(lessons)-1]
+
+	// 生成时间文本
+	var weekText string
+	if len(weeks) == 1 {
+		weekText = fmt.Sprintf("第%d周", weeks[0])
+	} else {
+		weekText = fmt.Sprintf("%d-%d周", weeks[0], weeks[len(weeks)-1])
+	}
+
+	var lessonText string
+	if startPeriod == endPeriod {
+		lessonText = fmt.Sprintf("%d节", startPeriod)
+	} else {
+		lessonText = fmt.Sprintf("%d-%d节", startPeriod, endPeriod)
+	}
+
+	return fmt.Sprintf("%s %s", weekText, lessonText)
 }
