@@ -161,11 +161,23 @@ func (h *CourseHandler) GetStructuredCoursesHandler(c *gin.Context) {
 		}
 	}
 
+	// 如果是默认查询（使用当前时间）且当前是非上课时间，返回空数据
+	if params.LessonNum == 0 {
+		_, _, lessonNum := h.courseStructureService.GetCurrentCourseTime()
+		if lessonNum == -1 {
+			// 返回空数组，提示非上课时间
+			emptyData := []vo.DivisionVO{}
+			vo.RespondSuccess(c, "当前是非上课时间，暂无课程", emptyData)
+			return
+		}
+	}
+
 	divisions, err := h.courseStructureService.GetStructuredCourses(params)
 	if err != nil {
 		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "获取课程数据失败", err)
 		return
 	}
+
 	vo.RespondSuccess(c, "课程数据获取成功", divisions)
 }
 
