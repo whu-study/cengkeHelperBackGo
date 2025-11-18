@@ -1,9 +1,14 @@
 package course
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	database "cengkeHelperBackGo/internal/db"
 	"cengkeHelperBackGo/internal/models/vo"
 	"cengkeHelperBackGo/internal/services/course"
-	"fmt"
 )
 
 var divisionNames = map[int]string{
@@ -11,6 +16,35 @@ var divisionNames = map[int]string{
 	2: "信息学部",
 	3: "工学部",
 	4: "医学部",
+}
+
+func GetStructuredCoursesWithCache(dayOfWeek int, weekNum int, lessonNum int) []vo.DivisionVO {
+	cacheKey := fmt.Sprintf("structured_courses_w%d_d%d_l%d", weekNum, dayOfWeek, lessonNum)
+
+	ctx := context.Background()
+
+	// try fetch from redis
+	if database.RedisClient != nil {
+		if val, err := database.RedisClient.Get(ctx, cacheKey).Result(); err == nil {
+			var data []vo.DivisionVO
+			if err := json.Unmarshal([]byte(val), &data); err == nil {
+				return data
+			}
+			// if unmarshal failed, fallthrough to regenerate
+		}
+	}
+
+	// generate fresh
+	data := GetStructuredCoursesWithCache(dayOfWeek, weekNum, lessonNum)
+
+	// save to redis (best-effort)
+	if database.RedisClient != nil {
+		if b, err := json.Marshal(data); err == nil {
+			_ = database.RedisClient.Set(ctx, cacheKey, b, 5*time.Minute).Err()
+		}
+	}
+
+	return data
 }
 
 func GetStructuredCourses(dayOfWeek int, weekNum int, lessonNum int) []vo.DivisionVO {
@@ -22,8 +56,8 @@ func GetStructuredCourses(dayOfWeek int, weekNum int, lessonNum int) []vo.Divisi
 	for i, buildingInfos := range infos {
 		division := vo.DivisionVO{
 			DivisionID:     "division_" + fmt.Sprintf("%d", i+1),
-			DivisionName:   divisionNames[i],
-			Description:    fmt.Sprintf("%s教学区域", divisionNames[i]),
+			DivisionName:   divisionNames[i+1],
+			Description:    fmt.Sprintf("%s教学区域", divisionNames[i+1]),
 			TotalBuildings: len(buildingInfos),
 			TotalFloors:    0,
 			TotalCourses:   0,
@@ -35,7 +69,7 @@ func GetStructuredCourses(dayOfWeek int, weekNum int, lessonNum int) []vo.Divisi
 				BuildingID:   fmt.Sprintf("division_%d_%s", i+1, building.Building),
 				BuildingName: building.Building,
 				BuildingCode: course.ExtractBuildingCode(building.Building),
-				Address:      fmt.Sprintf("武汉大学%s", divisionNames[i]),
+				Address:      fmt.Sprintf("武汉大学%s", divisionNames[i+1]),
 				Description:  "",
 				TotalFloors:  0,
 				TotalRooms:   len(building.Infos),
