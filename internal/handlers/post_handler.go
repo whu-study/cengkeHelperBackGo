@@ -5,12 +5,14 @@ import (
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo" // 导入包含 RespData 和辅助函数的包
 	"cengkeHelperBackGo/internal/services"
+	courseSvc "cengkeHelperBackGo/internal/services/course"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	// "log" // 如果需要记录详细错误
 )
 
@@ -364,4 +366,125 @@ func (h *PostHandler) ToggleCollectPost(c *gin.Context) {
 		return
 	}
 	vo.RespondSuccess(c, "操作成功", responseVO)
+}
+
+// GetActiveUsersHandler godoc
+// @Summary 获取最近 N 天发帖最活跃的用户
+// @Description 返回最近 N 天内发帖数量最多的用户列表，默认 days=3, limit=10
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Param days query int false "天数，默认3"
+// @Param limit query int false "返回数量，默认10"
+// @Success 200 {object} vo.RespData{data=[]vo.ActiveUserVO} "成功"
+// @Failure 500 {object} vo.RespData "服务器内部错误"
+// @Router /posts/active-users [get]
+func (h *PostHandler) GetActiveUsersHandler(c *gin.Context) {
+	days := 3
+	limit := 10
+	if dstr := c.Query("days"); dstr != "" {
+		if v, err := strconv.Atoi(dstr); err == nil && v > 0 {
+			days = v
+		}
+	}
+	if lstr := c.Query("limit"); lstr != "" {
+		if v, err := strconv.Atoi(lstr); err == nil && v > 0 {
+			limit = v
+		}
+	}
+
+	users, err := h.postService.GetActiveUsers(days, limit)
+	if err != nil {
+		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "获取活跃用户失败", err)
+		return
+	}
+	vo.RespondSuccess(c, "成功", users)
+}
+
+// GetCommunityStatsHandler godoc
+// @Summary 获取社区统计信息
+// @Description 返回总帖子数、注册用户数和今日新增帖子数
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Success 200 {object} vo.RespData{data=vo.CommunityStatsVO} "成功"
+// @Failure 500 {object} vo.RespData "服务器内部错误"
+// @Router /community/stats [get]
+func (h *PostHandler) GetCommunityStatsHandler(c *gin.Context) {
+	stats, err := h.postService.GetCommunityStats()
+	if err != nil {
+		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "��取社区统计失败", err)
+		return
+	}
+	vo.RespondSuccess(c, "成功", stats)
+}
+
+// GetCommunityOverviewHandler godoc
+// @Summary 获取社区概览（课程与帖子）
+// @Description 返回当前时段课程数、今日课程数和今日帖子数
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Param weekNum query int false "周次（默认为当前周）"
+// @Param weekday query int false "星期几（0=周日） 默认为当前星期）"
+// @Param lessonNum query int false "节次（默认当前节次）"
+// @Success 200 {object} vo.RespData{data=vo.CommunityOverviewVO} "成功"
+// @Failure 500 {object} vo.RespData "服务器内部错误"
+// @Router /community/overview [get]
+func (h *PostHandler) GetCommunityOverviewHandler(c *gin.Context) {
+	// parse optional params (0 means use current)
+	weekNum := 0
+	weekday := 0
+	lessonNum := 0
+	if w := c.Query("weekNum"); w != "" {
+		if v, err := strconv.Atoi(w); err == nil {
+			weekNum = v
+		}
+	}
+	if d := c.Query("weekday"); d != "" {
+		if v, err := strconv.Atoi(d); err == nil {
+			weekday = v
+		}
+	}
+	if l := c.Query("lessonNum"); l != "" {
+		if v, err := strconv.Atoi(l); err == nil {
+			lessonNum = v
+		}
+	}
+
+	// if params are 0, the course package helpers expect real values; use course package to compute current time
+	if weekNum == 0 || weekday == 0 || lessonNum == 0 {
+		// Get current time info from services package's CourseStructureService
+		w, wd, ln := services.NewCourseStructureService().GetCurrentCourseTime()
+		if weekNum == 0 {
+			weekNum = w
+		}
+		if weekday == 0 {
+			weekday = wd
+		}
+		if lessonNum == 0 {
+			lessonNum = ln
+		}
+	}
+
+	currentCount := 0
+	if lessonNum != -1 {
+		currentCount = courseSvc.GetSingleNumOfCourses(weekday, weekNum, lessonNum)
+	}
+	todayCount := courseSvc.GetOneDayNumOfCourses(weekday, weekNum)
+
+	// get today's posts from post service
+	commStats, err := h.postService.GetCommunityStats()
+	if err != nil {
+		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "获取社区统计失败", err)
+		return
+	}
+
+	overview := vo.CommunityOverviewVO{
+		CurrentPeriodCourses: currentCount,
+		TodayCourses:         todayCount,
+		TodayPosts:           commStats.TodayNewPosts,
+	}
+
+	vo.RespondSuccess(c, "成功", overview)
 }

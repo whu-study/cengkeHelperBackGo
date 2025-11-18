@@ -96,3 +96,25 @@ type ToggleCollectResponseDataVO struct {
 	IsCollected  bool `json:"isCollected"`
 	CollectCount int  `json:"collectCount"` // 注意类型
 }
+
+// ActiveUserVO 用于返回活跃用户信息
+type ActiveUserVO struct {
+	UserID    uint32 `json:"userId"`
+	Username  string `json:"username"`
+	Avatar    string `json:"avatar,omitempty"`
+	PostCount int64  `json:"postCount"`
+}
+
+// CommunityStatsVO 社区统计信息：总帖子数、注册用户数、今日新增帖子数
+type CommunityStatsVO struct {
+	TotalPosts    int64 `json:"totalPosts"`
+	TotalUsers    int64 `json:"totalUsers"`
+	TodayNewPosts int64 `json:"todayNewPosts"`
+}
+
+// CommunityOverviewVO 包含课程与帖子相关的概览数据
+type CommunityOverviewVO struct {
+	CurrentPeriodCourses int   `json:"currentPeriodCourses"` // 当前时段课程总数
+	TodayCourses         int   `json:"todayCourses"`         // 今日课程总数
+	TodayPosts           int64 `json:"todayPosts"`           // 今日帖子总数
+}

@@ -28,9 +28,14 @@ func Routers() *gin.Engine {
 		v1.POST("/auth/send-email-code", auth.SendEmailCodeHandler) // 添加发送验证码接口
 		v1.GET("/courses", courseHandler.GetCoursesHandler)
 		v1.GET("/all", courseHandler.GetAllCoursesHandler)
+		v1.GET("/courses/current-time", courseHandler.GetCurrentCourseTimeHandler) // 新增：获取当前课程时间
+		v1.GET("/courses/structured", courseHandler.GetStructuredCoursesHandler)   // 新增：获取结构化课程数据
 		v1.GET("/courses/:courseId", courseHandler.GetCourseDetailHandler)
 		v1.GET("/posts/comments/:postId", commentHandler.GetCommentsByPostID) // GET /api/v1/posts/:id/comments (获取帖子的评论)
 		v1.GET("/posts", postHandler.GetPosts)
+		v1.GET("/posts/active-users", postHandler.GetActiveUsersHandler)
+		v1.GET("/community/stats", postHandler.GetCommunityStatsHandler)
+		v1.GET("/community/overview", postHandler.GetCommunityOverviewHandler)
 		v1.GET("/posts/:id", postHandler.GetPostByID)
 		v1.GET("/courses/reviews/:courseId", courseHandler.GetCourseReviewsHandler)
 		v1.POST("/chat/stream", chatHandler.ChatStreamHandler)

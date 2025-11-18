@@ -16,6 +16,15 @@ type UserProfileVO struct {
 	Bio       string    `json:"bio,omitempty"`
 }
 
+// ExtendedUserProfileVO 在 UserProfileVO 基础上增加统计字段，返回给前端
+type ExtendedUserProfileVO struct {
+	UserProfileVO
+	PostsCount    int64 `json:"postsCount"`
+	CommentsCount int64 `json:"commentsCount"`
+	LikesCount    int64 `json:"likesCount"`    // 点赞数（用户自己做出的点赞数）
+	LikesReceived int64 `json:"likesReceived"` // 收到的点赞数（别人给该用户的帖子/评论点赞）
+}
+
 // LoginResponseDataVO 对应前端 LoginResponseData
 type LoginResponseDataVO struct {
 	Token string        `json:"token"`

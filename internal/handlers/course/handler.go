@@ -6,20 +6,25 @@ import (
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo"
 	"cengkeHelperBackGo/internal/services"
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // CourseHandler 处理课程相关的HTTP请求
 type CourseHandler struct {
-	courseService *services.CourseService
+	courseService          *services.CourseService
+	courseStructureService *services.CourseStructureService
 }
 
 // NewCourseHandler 创建一个新的 CourseHandler
 func NewCourseHandler() *CourseHandler {
 	return &CourseHandler{
-		courseService: services.NewCourseService(),
+		courseService:          services.NewCourseService(),
+		courseStructureService: services.NewCourseStructureService(),
 	}
 }
 
@@ -80,6 +85,124 @@ func (h *CourseHandler) GetCoursesHandler(c *gin.Context) {
 	infos := GetTeachInfos()
 	// 假设 vo.RespondSuccess 存在
 	vo.RespondSuccess(c, "课程数据获取成功", infos)
+}
+
+// GetCurrentCourseTimeHandler godoc
+// @Summary 获取当前课程时间信息
+// @Description 获取当前的周次、星期几、节次等时间信息
+// @Tags Courses
+// @Accept json
+// @Produce json
+// @Success 200 {object} vo.RespData{data=vo.CurrentCourseTimeVO} "成功"
+// @Router /courses/current-time [get]
+func (h *CourseHandler) GetCurrentCourseTimeHandler(c *gin.Context) {
+	weekNum, weekday, lessonNum := h.courseStructureService.GetCurrentCourseTime()
+
+	// 星期名称映射
+	weekdayNames := map[int]string{
+		0: "周日",
+		1: "周一",
+		2: "周二",
+		3: "周三",
+		4: "周四",
+		5: "周五",
+		6: "周六",
+	}
+
+	// 节次状态描述
+	var lessonStatus string
+	if lessonNum == -1 {
+		lessonStatus = "非上课时间"
+	} else {
+		lessonStatus = fmt.Sprintf("第%d节", lessonNum)
+	}
+
+	timeInfo := vo.CurrentCourseTimeVO{
+		WeekNum:      weekNum,
+		Weekday:      weekday,
+		WeekdayName:  weekdayNames[weekday],
+		LessonNum:    lessonNum,
+		LessonStatus: lessonStatus,
+		Timestamp:    time.Now().Unix(),
+	}
+
+	vo.RespondSuccess(c, "当前课程时间获取成功", timeInfo)
+}
+
+// GetStructuredCoursesHandler godoc
+// @Summary 获取结构化的课程数据（学部 → 教学楼 → 楼层 → 课程）
+// @Description 获取按照四级结构组织的课程数据。默认返回当前时间的课程。参数说明：-1表示不限（查询所有），0或不传表示使用当前时间
+// @Tags Courses
+// @Accept json
+// @Produce json
+// @Param weekNum query int false "周次（-1=不限, 0或不传=当前周次）"
+// @Param weekday query int false "星期几（-1=不限, 0或不传=当前星期）"
+// @Param lessonNum query int false "节次（-1=不限, 0或不传=当前节次）"
+// @Param divisionId query int false "学部ID（1-4，不传表示所有学部）"
+// @Param useCache query bool false "是否使用缓存（默认true）"
+// @Success 200 {object} vo.RespData{data=[]vo.DivisionVO} "成功"
+// @Failure 500 {object} vo.RespData "服务器内部错误"
+// @Router /courses/structured [get]
+func (h *CourseHandler) GetStructuredCoursesHandler(c *gin.Context) {
+	// 解析查询参数，默认值为0（表示使用当前时间）
+	params := &services.CourseQueryParams{
+		WeekNum:   0, // 0 表示使用当前周次
+		Weekday:   0, // 0 表示使用当前星期
+		LessonNum: 0, // 0 表示使用当前节次
+		UseCache:  true,
+	}
+
+	// 解析 weekNum
+	if weekNumStr := c.Query("weekNum"); weekNumStr != "" {
+		if weekNum, err := strconv.Atoi(weekNumStr); err == nil {
+			params.WeekNum = weekNum
+		}
+	}
+
+	// 解析 weekday
+	if weekdayStr := c.Query("weekday"); weekdayStr != "" {
+		if weekday, err := strconv.Atoi(weekdayStr); err == nil {
+			params.Weekday = weekday
+		}
+	}
+
+	// 解析 lessonNum
+	if lessonNumStr := c.Query("lessonNum"); lessonNumStr != "" {
+		if lessonNum, err := strconv.Atoi(lessonNumStr); err == nil {
+			params.LessonNum = lessonNum
+		}
+	}
+
+	// 解析 divisionId
+	if divisionIDStr := c.Query("divisionId"); divisionIDStr != "" {
+		if divisionID, err := strconv.Atoi(divisionIDStr); err == nil {
+			params.DivisionID = &divisionID
+		}
+	}
+
+	// 解析 useCache
+	if useCacheStr := c.Query("useCache"); useCacheStr != "" {
+		if useCache, err := strconv.ParseBool(useCacheStr); err == nil {
+			params.UseCache = useCache
+		}
+	}
+
+	// 如果是默认查询（使用当前时间）且当前是非上课时间，返回空数据
+	if params.LessonNum == 0 {
+		_, _, lessonNum := h.courseStructureService.GetCurrentCourseTime()
+		if lessonNum == -1 {
+			// 返回包含学部结构但buildings为空的数据，而不是完全空的数组
+			emptyData := h.courseStructureService.GetEmptyDivisionStructure(params.DivisionID)
+			vo.RespondSuccess(c, "当前是非上课时间，显示学部结构", emptyData)
+			return
+		}
+	}
+
+	params = h.courseStructureService.ValidParams(params)
+	divisions := GetStructuredCoursesWithCache(params.Weekday, params.WeekNum, params.LessonNum)
+
+	//divisions
+	vo.RespondSuccess(c, "课程数据获取成功", divisions)
 }
 
 // GetCourseDetailHandler godoc

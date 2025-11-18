@@ -105,6 +105,8 @@ func WatchConfigLoop(filePath string) bool {
 
 func init() {
 	if WatchConfigLoop("config.yaml") ||
+		WatchConfigLoop("../config.yaml") ||
+		WatchConfigLoop("../../config.yaml") ||
 		WatchConfigLoop("internal/config/config.yaml") ||
 		WatchConfigLoop("~/config.yaml") {
 		confBytes, _ := json.MarshalIndent(Conf, " ", "    ")

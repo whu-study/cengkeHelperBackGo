@@ -5,9 +5,9 @@ import (
 	database "cengkeHelperBackGo/internal/db"
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo"
-	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func UserProfileHandler(c *gin.Context) {
@@ -17,11 +17,16 @@ func UserProfileHandler(c *gin.Context) {
 		return
 	}
 
-	user := dto.User{}
-	if err := database.Client.
-		Model(&dto.User{}).
-		Where("id = ?", userId).
-		First(&user).Error; err != nil {
+	// we store userId as string in context; assert that here
+	uid, ok := userId.(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, vo.NewBadResp("invalid userId type"))
+		return
+	}
+
+	// fetch basic user
+	var user dto.User
+	if err := database.Client.Model(&dto.User{}).Where("id = ?", uid).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, vo.RespData{
 			Code: config.CodeUserNotFound,
 			Msg:  "failed to find user",
@@ -29,8 +34,45 @@ func UserProfileHandler(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(user)
-	c.JSON(http.StatusOK, vo.NewSuccessResp("用户信息查询成功", user))
+	// compute counts
+	var postsCount int64
+	_ = database.Client.Model(&dto.Post{}).Where("author_id = ?", uid).Count(&postsCount).Error
+
+	var commentsCount int64
+	_ = database.Client.Model(&dto.Comment{}).Where("author_id = ?", uid).Count(&commentsCount).Error
+
+	// likes count: count of post likes given + comment likes given
+	var postLikesGiven int64
+	_ = database.Client.Model(&dto.UserPostLike{}).Where("user_id = ?", uid).Count(&postLikesGiven).Error
+	var commentLikesGiven int64
+	_ = database.Client.Model(&dto.UserCommentLike{}).Where("user_id = ?", uid).Count(&commentLikesGiven).Error
+
+	likesCount := postLikesGiven + commentLikesGiven
+
+	// likes received: sum of likes_count on user's posts + likes_count on user's comments
+	var postLikesReceived int64
+	_ = database.Client.Model(&dto.Post{}).Select("COALESCE(SUM(likes_count),0)").Where("author_id = ?", uid).Scan(&postLikesReceived).Error
+	var commentLikesReceived int64
+	_ = database.Client.Model(&dto.Comment{}).Select("COALESCE(SUM(likes_count),0)").Where("author_id = ?", uid).Scan(&commentLikesReceived).Error
+	likesReceived := postLikesReceived + commentLikesReceived
+
+	profile := vo.ExtendedUserProfileVO{
+		UserProfileVO: vo.UserProfileVO{
+			ID:        user.Id,
+			Email:     user.Email,
+			Username:  user.Username,
+			UserRole:  user.UserRole,
+			CreatedAt: user.CreatedAt,
+			Avatar:    user.Avatar,
+			Bio:       user.Bio,
+		},
+		PostsCount:    postsCount,
+		CommentsCount: commentsCount,
+		LikesCount:    likesCount,
+		LikesReceived: likesReceived,
+	}
+
+	c.JSON(http.StatusOK, vo.NewSuccessResp("用户信息查询成功", profile))
 	// select * from users where id = userId
 
 }
@@ -39,6 +81,13 @@ func UpdateUserProfileHandler(c *gin.Context) {
 	userId, ok := c.Get("userId")
 	if !ok {
 		c.JSON(http.StatusBadRequest, vo.NewBadResp("userId is required"))
+		return
+	}
+
+	// expect userId in context to be string
+	uid, ok := userId.(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, vo.NewBadResp("invalid userId type"))
 		return
 	}
 
@@ -60,7 +109,7 @@ func UpdateUserProfileHandler(c *gin.Context) {
 		var count int64
 		if err := database.Client.
 			Model(&dto.User{}).
-			Where("username = ? AND id != ?", updateData.Username, userId).
+			Where("username = ? AND id != ?", updateData.Username, uid).
 			Count(&count).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, vo.NewBadResp("failed to check username"))
 			return
@@ -97,7 +146,7 @@ func UpdateUserProfileHandler(c *gin.Context) {
 	// 执行更新
 	result := database.Client.
 		Model(&dto.User{}).
-		Where("id = ?", userId).
+		Where("id = ?", uid).
 		Updates(updates)
 
 	if result.Error != nil {
@@ -117,7 +166,7 @@ func UpdateUserProfileHandler(c *gin.Context) {
 	updatedUser := dto.User{}
 	if err := database.Client.
 		Model(&dto.User{}).
-		Where("id = ?", userId).
+		Where("id = ?", uid).
 		First(&updatedUser).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, vo.NewBadResp("failed to fetch updated user data"))
 		return

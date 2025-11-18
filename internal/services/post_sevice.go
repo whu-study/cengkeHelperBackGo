@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
-	"strings"
 )
 
 type PostService struct {
@@ -549,4 +550,92 @@ func (s *PostService) ToggleCollectPost(postID uint32, userID uint32) (*vo.Toggl
 		IsCollected:  isCollected,
 		CollectCount: int(currentCollectCount),
 	}, nil
+}
+
+// GetActiveUsers 获取最近 N 天中发帖最多的用户（默认3天），返回用户基本信息与帖子数
+func (s *PostService) GetActiveUsers(days int, limit int) ([]vo.ActiveUserVO, error) {
+	if days <= 0 {
+		days = 3
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// raw SQL: select author_id, count(*) as cnt from posts where created_at >= NOW() - INTERVAL ? DAY group by author_id order by cnt desc limit ?
+	type row struct {
+		AuthorID uint32 `gorm:"column:author_id"`
+		Cnt      int64  `gorm:"column:cnt"`
+	}
+	var rows []row
+	if err := database.Client.Raw("SELECT author_id, COUNT(*) as cnt FROM posts WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY author_id ORDER BY cnt DESC LIMIT ?", days, limit).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	if len(rows) == 0 {
+		return []vo.ActiveUserVO{}, nil
+	}
+
+	// collect author ids
+	ids := make([]uint32, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.AuthorID)
+	}
+
+	// fetch users
+	var users []dto.User
+	if err := database.Client.Where("id IN ?", ids).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	userMap := make(map[uint32]dto.User)
+	for _, u := range users {
+		userMap[u.Id] = u
+	}
+
+	// build result preserving order
+	res := make([]vo.ActiveUserVO, 0, len(rows))
+	for _, r := range rows {
+		u, ok := userMap[r.AuthorID]
+		if !ok {
+			// skip if user not found
+			continue
+		}
+		res = append(res, vo.ActiveUserVO{
+			UserID:    u.Id,
+			Username:  u.Username,
+			Avatar:    u.Avatar,
+			PostCount: r.Cnt,
+		})
+	}
+	return res, nil
+}
+
+// GetCommunityStats 返回社区统计：总帖子、注册用户数、今日新帖
+func (s *PostService) GetCommunityStats() (vo.CommunityStatsVO, error) {
+	var stats vo.CommunityStatsVO
+
+	// total posts
+	var totalPosts int64
+	if err := database.Client.Model(&dto.Post{}).Count(&totalPosts).Error; err != nil {
+		return stats, err
+	}
+
+	// total users
+	var totalUsers int64
+	if err := database.Client.Model(&dto.User{}).Count(&totalUsers).Error; err != nil {
+		return stats, err
+	}
+
+	// today new posts: created_at >= today's midnight
+	var todayNew int64
+	if err := database.Client.Raw("SELECT COUNT(*) as cnt FROM posts WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-%d 00:00:00')").Scan(&todayNew).Error; err != nil {
+		// fallback to using GORM count with condition
+		if err2 := database.Client.Model(&dto.Post{}).Where("created_at >= DATE_FORMAT(NOW(), '%Y-%m-%d 00:00:00')").Count(&todayNew).Error; err2 != nil {
+			return stats, err2
+		}
+	}
+
+	stats.TotalPosts = totalPosts
+	stats.TotalUsers = totalUsers
+	stats.TodayNewPosts = todayNew
+	return stats, nil
 }
