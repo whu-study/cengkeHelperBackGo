@@ -35,7 +35,7 @@ func GetStructuredCoursesWithCache(dayOfWeek int, weekNum int, lessonNum int) []
 	}
 
 	// generate fresh
-	data := GetStructuredCoursesWithCache(dayOfWeek, weekNum, lessonNum)
+	data := GetStructuredCourses(dayOfWeek, weekNum, lessonNum)
 
 	// save to redis (best-effort)
 	if database.RedisClient != nil {
