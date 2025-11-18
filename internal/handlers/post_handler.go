@@ -467,7 +467,10 @@ func (h *PostHandler) GetCommunityOverviewHandler(c *gin.Context) {
 		}
 	}
 
-	currentCount := courseSvc.GetSingleNumOfCourses(weekday, weekNum, lessonNum)
+	currentCount := 0
+	if lessonNum != -1 {
+		currentCount = courseSvc.GetSingleNumOfCourses(weekday, weekNum, lessonNum)
+	}
 	todayCount := courseSvc.GetOneDayNumOfCourses(weekday, weekNum)
 
 	// get today's posts from post service
