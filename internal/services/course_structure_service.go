@@ -8,9 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -88,10 +86,7 @@ func (s *CourseStructureService) GetCurrentCourseTime() (weekNum int, weekday in
 	return weekNum, weekday, lessonNum
 }
 
-// GetStructuredCourses 获取结构化的课程数据（学部 → 教学楼 → 楼层 → 课程）
-// 默认返回当前时间的课程
-func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams) ([]vo.DivisionVO, error) {
-	// 如果没有传参数，使用当前时间
+func (s *CourseStructureService) ValidParams(params *CourseQueryParams) *CourseQueryParams {
 	if params == nil {
 		weekNum, weekday, lessonNum := s.GetCurrentCourseTime()
 		params = &CourseQueryParams{
@@ -114,281 +109,7 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 			params.LessonNum = currentLessonNum
 		}
 	}
-
-	// 尝试从缓存获取
-	if params.UseCache {
-		cacheKey := s.getCacheKey(params)
-		if cachedData, err := s.getFromCache(cacheKey); err == nil && cachedData != nil {
-			log.Printf("从缓存获取课程数据: %s", cacheKey)
-			return cachedData, nil
-		}
-	}
-
-	// 构建查询条件
-	var timeInfos []dto.TimeInfo
-	query := database.Client.Model(&dto.TimeInfo{})
-
-	// 添加学部过滤
-	if params.DivisionID != nil {
-		query = query.Where("area = ?", *params.DivisionID)
-	}
-
-	// 添加星期过滤（只有当weekday >= 0时才过滤）
-	if params.Weekday >= 0 {
-		query = query.Where("day_of_week = ?", params.Weekday)
-	}
-
-	// 添加周次过滤（使用位运算）
-	if params.WeekNum > 0 {
-		// 周次存储在高位，使用位运算检查：(week_and_time & (1 << (32 - weekNum))) != 0
-		query = query.Where("(week_and_time & (1 << (32 - ?))) != 0", params.WeekNum)
-	}
-
-	// 添加节次过滤（使用位运算）
-	if params.LessonNum > 0 {
-		// 节次存储在低位，使用位运算检查：(week_and_time & (1 << (lessonNum - 1))) != 0
-		query = query.Where("(week_and_time & (1 << (? - 1))) != 0", params.LessonNum)
-	}
-
-	if err := query.Find(&timeInfos).Error; err != nil {
-		log.Printf("查询时间信息失败: %v", err)
-		return nil, fmt.Errorf("查询课程时间信息失败: %w", err)
-	}
-
-	// 获取课程ID列表
-	courseIDs := make([]uint32, 0, len(timeInfos))
-	for _, ti := range timeInfos {
-		courseIDs = append(courseIDs, ti.CourseInfoId)
-	}
-
-	// 只查询需要的课程信息
-	var courses []dto.CourseInfo
-	if len(courseIDs) > 0 {
-		if err := database.Client.Where("id IN ?", courseIDs).Find(&courses).Error; err != nil {
-			log.Printf("查询课程信息失败: %v", err)
-			return nil, fmt.Errorf("查询课程信息失败: %w", err)
-		}
-	}
-
-	// 创建课程ID到课程的映射
-	courseMap := make(map[uint32]*dto.CourseInfo)
-	for i := range courses {
-		courseMap[courses[i].ID] = &courses[i]
-	}
-
-	// 按学部组织数据
-	divisionMap := make(map[string]*vo.DivisionVO)
-
-	// 学部名称映射（根据Area字段）
-	divisionNames := map[uint8]string{
-		1: "文理学部",
-		2: "信息学部",
-		3: "工学部",
-		4: "医学部",
-	}
-
-	// --- Prepopulate divisions so we always return division-level structure even if no courses ---
-	if params.DivisionID != nil {
-		// only include the requested division
-		if *params.DivisionID >= 1 && *params.DivisionID <= 4 {
-			id := fmt.Sprintf("division_%d", *params.DivisionID)
-			name := divisionNames[uint8(*params.DivisionID)]
-			divisionMap[id] = &vo.DivisionVO{
-				DivisionID:     id,
-				DivisionName:   name,
-				Description:    fmt.Sprintf("%s教学区域", name),
-				TotalBuildings: 0,
-				TotalFloors:    0,
-				TotalCourses:   0,
-				Buildings:      []vo.BuildingVO{},
-			}
-		}
-	} else {
-		// include all divisions
-		for i := 1; i <= 4; i++ {
-			id := fmt.Sprintf("division_%d", i)
-			name := divisionNames[uint8(i)]
-			divisionMap[id] = &vo.DivisionVO{
-				DivisionID:     id,
-				DivisionName:   name,
-				Description:    fmt.Sprintf("%s教学区域", name),
-				TotalBuildings: 0,
-				TotalFloors:    0,
-				TotalCourses:   0,
-				Buildings:      []vo.BuildingVO{},
-			}
-		}
-	}
-
-	// 课程去重：使用 courseID + classroom 作为唯一键
-	addedCourses := make(map[string]bool)
-
-	for _, timeInfo := range timeInfos {
-		// 数据库已经通过位运算过滤了周次和节次，不需要在内存中再次过滤
-
-		course, exists := courseMap[timeInfo.CourseInfoId]
-		if !exists {
-			continue
-		}
-
-		// 去重：同一门课在同一教室只添加一次
-		courseKey := fmt.Sprintf("%d_%s", course.ID, timeInfo.Classroom)
-		if addedCourses[courseKey] {
-			continue
-		}
-		addedCourses[courseKey] = true
-
-		// 获取或创建学部
-		divisionID := fmt.Sprintf("division_%d", timeInfo.Area)
-		divisionName := divisionNames[timeInfo.Area]
-		if divisionName == "" {
-			divisionName = fmt.Sprintf("学部%d", timeInfo.Area)
-		}
-
-		division, exists := divisionMap[divisionID]
-		if !exists {
-			division = &vo.DivisionVO{
-				DivisionID:   divisionID,
-				DivisionName: divisionName,
-				Description:  fmt.Sprintf("%s教学区域", divisionName),
-				Buildings:    []vo.BuildingVO{},
-			}
-			divisionMap[divisionID] = division
-		}
-
-		// 获取或创建教学楼
-		buildingID := fmt.Sprintf("%s_%s", divisionID, s.normalizeBuilding(timeInfo.Building))
-		var building *vo.BuildingVO
-		for i := range division.Buildings {
-			if division.Buildings[i].BuildingID == buildingID {
-				building = &division.Buildings[i]
-				break
-			}
-		}
-		if building == nil {
-			building = &vo.BuildingVO{
-				BuildingID:   buildingID,
-				BuildingName: timeInfo.Building,
-				BuildingCode: s.extractBuildingCode(timeInfo.Building),
-				Address:      fmt.Sprintf("武汉大学%s", divisionName),
-				Floors:       []vo.FloorVO{},
-			}
-			division.Buildings = append(division.Buildings, *building)
-			building = &division.Buildings[len(division.Buildings)-1]
-		}
-
-		// 从教室编号提取楼层信息
-		floorNumber := s.extractFloorNumber(timeInfo.Classroom)
-		floorID := fmt.Sprintf("%s_F%d", buildingID, floorNumber)
-
-		// 获取或创建楼层
-		var floor *vo.FloorVO
-		for i := range building.Floors {
-			if building.Floors[i].FloorID == floorID {
-				floor = &building.Floors[i]
-				break
-			}
-		}
-		if floor == nil {
-			floor = &vo.FloorVO{
-				FloorID:     floorID,
-				FloorName:   fmt.Sprintf("%s %d层", building.BuildingCode, floorNumber),
-				FloorNumber: floorNumber,
-				Rooms:       []vo.RoomVO{},
-				Courses:     []vo.CourseInfoVO{},
-			}
-			building.Floors = append(building.Floors, *floor)
-			floor = &building.Floors[len(building.Floors)-1]
-		}
-
-		// 添加教室（如果不存在）
-		roomID := fmt.Sprintf("%s_%s", floorID, timeInfo.Classroom)
-		roomExists := false
-		for _, room := range floor.Rooms {
-			if room.RoomID == roomID {
-				roomExists = true
-				break
-			}
-		}
-		if !roomExists {
-			floor.Rooms = append(floor.Rooms, vo.RoomVO{
-				RoomID:     roomID,
-				RoomNumber: timeInfo.Classroom,
-				RoomName:   fmt.Sprintf("教室 %s", timeInfo.Classroom),
-				Facilities: []string{"投影仪", "空调", "网络"},
-			})
-		}
-
-		// 解析学分
-		credits := s.parseCredits(course.Credit)
-
-		// 解析时间段
-		timeSlots := s.parseTimeSlots(timeInfo)
-
-		// 生成课程时间文本（如 "1-2节"）
-		courseTime := s.formatCourseTime(timeInfo, params.LessonNum)
-
-		// 添加课程信息
-		courseVO := vo.CourseInfoVO{
-			ID:            course.ID,
-			CourseName:    course.CourseName,
-			CourseCode:    course.CourseNum,
-			TeacherName:   course.Teacher,
-			TeacherTitle:  course.TeacherTitle,
-			Faculty:       course.Faculty,
-			Credits:       credits,
-			CourseType:    course.CourseType,
-			Room:          timeInfo.Classroom,
-			TimeSlots:     timeSlots,
-			CourseTime:    courseTime, // 填充课程时间文本
-			Description:   course.Description,
-			AverageRating: course.AverageRating,
-			ReviewCount:   course.ReviewCount,
-		}
-		floor.Courses = append(floor.Courses, courseVO)
-	}
-
-	// 计算统计信息并转换为数组
-	result := make([]vo.DivisionVO, 0, len(divisionMap))
-	for _, division := range divisionMap {
-		totalFloors := 0
-		totalCourses := 0
-		totalRooms := 0
-
-		for i := range division.Buildings {
-			building := &division.Buildings[i]
-			buildingCourses := 0
-			buildingRooms := 0
-
-			for j := range building.Floors {
-				floor := &building.Floors[j]
-				buildingCourses += len(floor.Courses)
-				buildingRooms += len(floor.Rooms)
-			}
-
-			building.TotalFloors = len(building.Floors)
-			building.TotalCourses = buildingCourses
-			building.TotalRooms = buildingRooms
-
-			totalFloors += len(building.Floors)
-			totalCourses += buildingCourses
-			totalRooms += buildingRooms
-		}
-
-		division.TotalBuildings = len(division.Buildings)
-		division.TotalFloors = totalFloors
-		division.TotalCourses = totalCourses
-
-		result = append(result, *division)
-	}
-
-	// 存入缓存（5分钟过期）
-	if params.UseCache {
-		cacheKey := s.getCacheKey(params)
-		_ = s.saveToCache(cacheKey, result, 5*time.Minute)
-	}
-
-	return result, nil
+	return params
 }
 
 // GetEmptyDivisionStructure 获取空的学部结构（保留学部层级，但buildings为空）
@@ -415,7 +136,7 @@ func (s *CourseStructureService) GetEmptyDivisionStructure(divisionID *int) []vo
 				TotalBuildings: 0,
 				TotalFloors:    0,
 				TotalCourses:   0,
-				Buildings:      []vo.BuildingVO{},
+				Buildings:      []*vo.BuildingVO{},
 			})
 		}
 	} else {
@@ -429,7 +150,7 @@ func (s *CourseStructureService) GetEmptyDivisionStructure(divisionID *int) []vo
 				TotalBuildings: 0,
 				TotalFloors:    0,
 				TotalCourses:   0,
-				Buildings:      []vo.BuildingVO{},
+				Buildings:      []*vo.BuildingVO{},
 			})
 		}
 	}
@@ -495,73 +216,6 @@ func (s *CourseStructureService) extractBuildingCode(building string) string {
 		return string(runes[:3])
 	}
 	return building
-}
-
-// extractFloorNumber 从教室编号提取楼层号
-func (s *CourseStructureService) extractFloorNumber(classroom string) int {
-	// 常见格式: A101, 201, 3-101 等
-	// 提取第一个或第二个数字作为楼层号
-	reg := regexp.MustCompile(`\d+`)
-	matches := reg.FindAllString(classroom, -1)
-
-	if len(matches) > 0 {
-		// 取第一个数字序列
-		numStr := matches[0]
-		if len(numStr) >= 3 {
-			// 如果是3位或以上数字，第一位是楼层
-			floor, _ := strconv.Atoi(string(numStr[0]))
-			if floor > 0 {
-				return floor
-			}
-		} else if len(numStr) >= 1 {
-			// 否则整个数字可能是楼层
-			floor, _ := strconv.Atoi(numStr)
-			if floor > 0 && floor < 50 {
-				return floor
-			}
-		}
-	}
-
-	return 1 // 默认第一层
-}
-
-// parseCredits 解析学分字符串为浮点数
-func (s *CourseStructureService) parseCredits(creditStr string) float32 {
-	// 移除非数字字符
-	reg := regexp.MustCompile(`[\d.]+`)
-	match := reg.FindString(creditStr)
-	if match != "" {
-		if credit, err := strconv.ParseFloat(match, 32); err == nil {
-			return float32(credit)
-		}
-	}
-	return 0
-}
-
-// parseTimeSlots 解析时间段信息
-func (s *CourseStructureService) parseTimeSlots(timeInfo dto.TimeInfo) []vo.TimeSlotVO {
-	// 从二进制数据中提取周次和节次
-	weeks, lessons := generator.Bin2WeekLesson(timeInfo.WeekAndTime)
-
-	if len(lessons) == 0 {
-		return []vo.TimeSlotVO{}
-	}
-
-	// 格式化周次范围
-	weekRange := s.formatWeekRange(weeks)
-
-	// 格式化节次范围
-	startPeriod := lessons[0]
-	endPeriod := lessons[len(lessons)-1]
-
-	return []vo.TimeSlotVO{
-		{
-			DayOfWeek:   int(timeInfo.DayOfWeek),
-			StartPeriod: startPeriod,
-			EndPeriod:   endPeriod,
-			Weeks:       weekRange,
-		},
-	}
 }
 
 // formatWeekRange 格式化周次范围

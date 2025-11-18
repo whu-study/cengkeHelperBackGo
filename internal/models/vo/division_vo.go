@@ -2,36 +2,36 @@ package vo
 
 // DivisionVO 学部信息VO（匹配前端API设计）
 type DivisionVO struct {
-	DivisionID     string       `json:"divisionId"`
-	DivisionName   string       `json:"divisionName"`
-	Description    string       `json:"description"`
-	TotalBuildings int          `json:"totalBuildings"`
-	TotalFloors    int          `json:"totalFloors"`
-	TotalCourses   int          `json:"totalCourses"`
-	Buildings      []BuildingVO `json:"buildings"`
+	DivisionID     string        `json:"divisionId"`
+	DivisionName   string        `json:"divisionName"`
+	Description    string        `json:"description"`
+	TotalBuildings int           `json:"totalBuildings"`
+	TotalFloors    int           `json:"totalFloors"`
+	TotalCourses   int           `json:"totalCourses"`
+	Buildings      []*BuildingVO `json:"buildings"`
 }
 
 // BuildingVO 教学楼信息VO（匹配前端API设计）
 type BuildingVO struct {
-	BuildingID   string    `json:"buildingId"`
-	BuildingName string    `json:"buildingName"`
-	BuildingCode string    `json:"buildingCode"`
-	Address      string    `json:"address,omitempty"`
-	Description  string    `json:"description,omitempty"`
-	TotalFloors  int       `json:"totalFloors"`
-	TotalRooms   int       `json:"totalRooms"`
-	TotalCourses int       `json:"totalCourses"`
-	Floors       []FloorVO `json:"floors"`
+	BuildingID   string     `json:"buildingId"`
+	BuildingName string     `json:"buildingName"`
+	BuildingCode string     `json:"buildingCode"`
+	Address      string     `json:"address,omitempty"`
+	Description  string     `json:"description,omitempty"`
+	TotalFloors  int        `json:"totalFloors"`
+	TotalRooms   int        `json:"totalRooms"`
+	TotalCourses int        `json:"totalCourses"`
+	Floors       []*FloorVO `json:"floors"`
 }
 
 // FloorVO 楼层信息VO（匹配前端API设计）
 type FloorVO struct {
-	FloorID     string         `json:"floorId"`
-	FloorName   string         `json:"floorName"`
-	FloorNumber int            `json:"floorNumber"`
-	Description string         `json:"description,omitempty"`
-	Rooms       []RoomVO       `json:"rooms"`
-	Courses     []CourseInfoVO `json:"courses"`
+	FloorID     string          `json:"floorId"`
+	FloorName   string          `json:"floorName"`
+	FloorNumber int             `json:"floorNumber"`
+	Description string          `json:"description,omitempty"`
+	Rooms       []*RoomVO       `json:"rooms"`
+	Courses     []*CourseInfoVO `json:"courses"`
 }
 
 // RoomVO 教室信息VO（匹配前端API设计）

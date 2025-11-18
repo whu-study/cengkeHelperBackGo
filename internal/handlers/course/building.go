@@ -18,6 +18,10 @@ type RespTeachInfo struct {
 	CourseTime   string `json:"courseTime"`
 	CourseType   string `json:"courseType"`
 	Description  string `json:"description,omitempty"`
+	Credits      string `json:"credits,omitempty"`
+
+	WeekAndTime uint32 `json:"weekAndTime,omitempty"`
+	DayOfWeek   int    `json:"dayOfWeek,omitempty"`
 
 	AverageRating float32 `json:"rating,omitempty"`
 	ReviewCount   uint32  `json:"reviewCount,omitempty"`
@@ -33,7 +37,12 @@ type MapTeachInfo struct {
 	WeekAndTime  uint32
 	Building     string
 
-	DayOfWeek string
+	ReviewCount   uint32
+	AverageRating float32
+
+	Credits string
+
+	DayOfWeek int
 
 	CourseType string
 }
@@ -48,9 +57,10 @@ var RespTeachInfos = make([][]BuildingTeachInfos, 5)
 
 func searchByAreaAndWeekday(areaNum int, weekday int, weekNum int, lessonNum int) []MapTeachInfo {
 	tempInfo := make([]MapTeachInfo, 0)
+	weekLessonBin := generator.WeekLesson2Bin([]int{weekNum}, []int{lessonNum})
 	if err := database.Client.
 		Raw(queryStr,
-			weekday, areaNum, generator.WeekLesson2Bin([]int{weekNum}, []int{lessonNum})).
+			weekday, areaNum, weekLessonBin, weekLessonBin).
 		Find(&tempInfo).Error; err != nil {
 		log.Fatal(err)
 	}
@@ -58,7 +68,7 @@ func searchByAreaAndWeekday(areaNum int, weekday int, weekNum int, lessonNum int
 	return tempInfo
 }
 
-func getInfos(weekNum, weekday, lessonNum int) [][]BuildingTeachInfos {
+func GetInfos(weekNum, weekday, lessonNum int) [][]BuildingTeachInfos {
 	for i := 0; i < 5; i++ {
 		RespTeachInfos[i] = make([]BuildingTeachInfos, 0)
 	}
@@ -69,15 +79,21 @@ func getInfos(weekNum, weekday, lessonNum int) [][]BuildingTeachInfos {
 		for _, info := range searchByAreaAndWeekday(i, weekday, weekNum, lessonNum) {
 			// 数据库已经完成过滤，不再需要内存中的二次过滤
 			res := RespTeachInfo{
-				ID:           info.ID,
-				CourseNum:    info.CourseNum,
-				Room:         info.Classroom,
-				Faculty:      info.Faculty,
-				CourseName:   info.CourseName,
-				TeacherName:  info.Teacher,
-				TeacherTitle: info.TeacherTitle,
-				CourseTime:   generator.NearestToDisplay(lessonNum, info.WeekAndTime),
-				CourseType:   info.CourseType,
+				ID:            info.ID,
+				CourseNum:     info.CourseNum,
+				Room:          info.Classroom,
+				Faculty:       info.Faculty,
+				CourseName:    info.CourseName,
+				TeacherName:   info.Teacher,
+				TeacherTitle:  info.TeacherTitle,
+				CourseTime:    generator.NearestToDisplay(lessonNum, info.WeekAndTime),
+				CourseType:    info.CourseType,
+				Credits:       info.Credits,
+				AverageRating: info.AverageRating,
+				ReviewCount:   info.ReviewCount,
+
+				WeekAndTime: info.WeekAndTime,
+				DayOfWeek:   info.DayOfWeek,
 			}
 			// 去重：按 courseNum 在同一教学楼内去重，避免同一课程因为不同教室/时段重复出现
 			existing := false

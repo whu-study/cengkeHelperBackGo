@@ -5,7 +5,7 @@ import (
 )
 
 func GetTeachInfos() [][]BuildingTeachInfos {
-	return getInfos(CurCourseTime())
+	return GetInfos(CurCourseTime())
 }
 
 func CurCourseTime() (weekNum int, weekday int, lessonNum int) {
