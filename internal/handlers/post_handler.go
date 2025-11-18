@@ -7,10 +7,11 @@ import (
 	"cengkeHelperBackGo/internal/services"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	// "log" // 如果需要记录详细错误
 )
 
@@ -364,4 +365,37 @@ func (h *PostHandler) ToggleCollectPost(c *gin.Context) {
 		return
 	}
 	vo.RespondSuccess(c, "操作成功", responseVO)
+}
+
+// GetActiveUsersHandler godoc
+// @Summary 获取最近 N 天发帖最活跃的用户
+// @Description 返回最近 N 天内发帖数量最多的用户列表，默认 days=3, limit=10
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Param days query int false "天数，默认3"
+// @Param limit query int false "返回数量，默认10"
+// @Success 200 {object} vo.RespData{data=[]vo.ActiveUserVO} "成功"
+// @Failure 500 {object} vo.RespData "服务器内部错误"
+// @Router /posts/active-users [get]
+func (h *PostHandler) GetActiveUsersHandler(c *gin.Context) {
+	days := 3
+	limit := 10
+	if dstr := c.Query("days"); dstr != "" {
+		if v, err := strconv.Atoi(dstr); err == nil && v > 0 {
+			days = v
+		}
+	}
+	if lstr := c.Query("limit"); lstr != "" {
+		if v, err := strconv.Atoi(lstr); err == nil && v > 0 {
+			limit = v
+		}
+	}
+
+	users, err := h.postService.GetActiveUsers(days, limit)
+	if err != nil {
+		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "获取活跃用户失败", err)
+		return
+	}
+	vo.RespondSuccess(c, "成功", users)
 }

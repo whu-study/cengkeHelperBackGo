@@ -96,3 +96,11 @@ type ToggleCollectResponseDataVO struct {
 	IsCollected  bool `json:"isCollected"`
 	CollectCount int  `json:"collectCount"` // 注意类型
 }
+
+// ActiveUserVO 用于返回活跃用户信息
+type ActiveUserVO struct {
+	UserID    uint32 `json:"userId"`
+	Username  string `json:"username"`
+	Avatar    string `json:"avatar,omitempty"`
+	PostCount int64  `json:"postCount"`
+}
