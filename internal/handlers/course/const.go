@@ -17,8 +17,7 @@ var queryStr = `
         JOIN course_infos ci ON ci.id = ti.course_info_id
         WHERE ti.day_of_week = ? 
           AND ti.area = ? 
-          AND (? = -1 OR (ti.week_and_time & (1 << (32 - ?))) != 0)
-          AND (? = -1 OR (ti.week_and_time & (1 << (? - 1))) != 0)
+          AND ti.week_and_time & ? = ?
         GROUP BY 
             ti.building, 
             ti.classroom,

@@ -187,6 +187,39 @@ func (s *CourseStructureService) GetStructuredCourses(params *CourseQueryParams)
 		4: "医学部",
 	}
 
+	// --- Prepopulate divisions so we always return division-level structure even if no courses ---
+	if params.DivisionID != nil {
+		// only include the requested division
+		if *params.DivisionID >= 1 && *params.DivisionID <= 4 {
+			id := fmt.Sprintf("division_%d", *params.DivisionID)
+			name := divisionNames[uint8(*params.DivisionID)]
+			divisionMap[id] = &vo.DivisionVO{
+				DivisionID:     id,
+				DivisionName:   name,
+				Description:    fmt.Sprintf("%s教学区域", name),
+				TotalBuildings: 0,
+				TotalFloors:    0,
+				TotalCourses:   0,
+				Buildings:      []vo.BuildingVO{},
+			}
+		}
+	} else {
+		// include all divisions
+		for i := 1; i <= 4; i++ {
+			id := fmt.Sprintf("division_%d", i)
+			name := divisionNames[uint8(i)]
+			divisionMap[id] = &vo.DivisionVO{
+				DivisionID:     id,
+				DivisionName:   name,
+				Description:    fmt.Sprintf("%s教学区域", name),
+				TotalBuildings: 0,
+				TotalFloors:    0,
+				TotalCourses:   0,
+				Buildings:      []vo.BuildingVO{},
+			}
+		}
+	}
+
 	// 课程去重：使用 courseID + classroom 作为唯一键
 	addedCourses := make(map[string]bool)
 

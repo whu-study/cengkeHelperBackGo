@@ -11,6 +11,7 @@ type RespTeachInfo struct {
 	ID           uint32 `json:"id"`
 	Room         string `json:"room"`
 	Faculty      string `json:"faculty"`
+	CourseNum    string `json:"courseNum,omitempty"`
 	CourseName   string `json:"courseName"`
 	TeacherName  string `json:"teacherName"`
 	TeacherTitle string `json:"teacherTitle"`
@@ -49,7 +50,7 @@ func searchByAreaAndWeekday(areaNum int, weekday int, weekNum int, lessonNum int
 	tempInfo := make([]MapTeachInfo, 0)
 	if err := database.Client.
 		Raw(queryStr,
-			weekday, areaNum, weekNum, weekNum, lessonNum, lessonNum).
+			weekday, areaNum, generator.WeekLesson2Bin([]int{weekNum}, []int{lessonNum})).
 		Find(&tempInfo).Error; err != nil {
 		log.Fatal(err)
 	}
@@ -69,6 +70,7 @@ func getInfos(weekNum, weekday, lessonNum int) [][]BuildingTeachInfos {
 			// 数据库已经完成过滤，不再需要内存中的二次过滤
 			res := RespTeachInfo{
 				ID:           info.ID,
+				CourseNum:    info.CourseNum,
 				Room:         info.Classroom,
 				Faculty:      info.Faculty,
 				CourseName:   info.CourseName,
@@ -77,9 +79,22 @@ func getInfos(weekNum, weekday, lessonNum int) [][]BuildingTeachInfos {
 				CourseTime:   generator.NearestToDisplay(lessonNum, info.WeekAndTime),
 				CourseType:   info.CourseType,
 			}
-			//_, lesson := generator.Bin2WeekLesson(info.WeekAndTime)
-			//logger.Info(res, lesson)
-			buildingMap[info.Building] = append(buildingMap[info.Building], res)
+			// 去重：按 courseNum 在同一教学楼内去重，避免同一课程因为不同教室/时段重复出现
+			existing := false
+			for _, ex := range buildingMap[info.Building] {
+				if ex.CourseNum != "" && ex.CourseNum == info.CourseNum {
+					existing = true
+					break
+				}
+				// 作为兜底，如果 CourseNum 缺失，则用 ID 检查去重
+				if ex.CourseNum == "" && ex.ID == info.ID {
+					existing = true
+					break
+				}
+			}
+			if !existing {
+				buildingMap[info.Building] = append(buildingMap[info.Building], res)
+			}
 		}
 		for key, infos := range buildingMap {
 			RespTeachInfos[i-1] = append(RespTeachInfos[i-1], BuildingTeachInfos{
