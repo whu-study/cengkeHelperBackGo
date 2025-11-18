@@ -52,7 +52,7 @@ func (s *CourseStructureService) TimeToNums(t, beginDate time.Time) (weekNum int
 
 	switch {
 	case hour < 7 || (hour == 7 && minute < 50):
-		lessonNum = -1 // 早上还没开始上课
+		lessonNum = 1 //-1 // 早上还没开始上课
 	case hour < 8 || (hour == 8 && minute < 45):
 		lessonNum = 1
 	case hour < 9 || (hour == 9 && minute < 35):
@@ -64,7 +64,7 @@ func (s *CourseStructureService) TimeToNums(t, beginDate time.Time) (weekNum int
 	case hour < 12 || (hour == 12 && minute < 15):
 		lessonNum = 5
 	case hour < 13 || (hour == 13 && minute < 55):
-		lessonNum = -1 // 中午休息
+		lessonNum = 5 //-1 // 中午休息
 	case hour < 14 || (hour == 14 && minute < 50):
 		lessonNum = 6
 	case hour < 15 || (hour == 15 && minute < 40):
@@ -76,7 +76,7 @@ func (s *CourseStructureService) TimeToNums(t, beginDate time.Time) (weekNum int
 	case hour < 18 || (hour == 18 && minute < 15):
 		lessonNum = 10
 	case hour < 18 || (hour == 18 && minute < 20):
-		lessonNum = -1 // 晚饭时间
+		lessonNum = 10 //-1 // 晚饭时间
 	case hour < 19 || (hour == 19 && minute < 15):
 		lessonNum = 11
 	case hour < 20 || (hour == 20 && minute < 5):
@@ -84,7 +84,7 @@ func (s *CourseStructureService) TimeToNums(t, beginDate time.Time) (weekNum int
 	case hour < 20 || (hour == 20 && minute < 55):
 		lessonNum = 13
 	default:
-		lessonNum = -1 // 晚上没课了
+		lessonNum = 13 //-1 // 晚上没课了
 	}
 
 	return weekNum, weekday, lessonNum
