@@ -399,3 +399,21 @@ func (h *PostHandler) GetActiveUsersHandler(c *gin.Context) {
 	}
 	vo.RespondSuccess(c, "成功", users)
 }
+
+// GetCommunityStatsHandler godoc
+// @Summary 获取社区统计信息
+// @Description 返回总帖子数、注册用户数和今日新增帖子数
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Success 200 {object} vo.RespData{data=vo.CommunityStatsVO} "成功"
+// @Failure 500 {object} vo.RespData "服务器内部错误"
+// @Router /community/stats [get]
+func (h *PostHandler) GetCommunityStatsHandler(c *gin.Context) {
+	stats, err := h.postService.GetCommunityStats()
+	if err != nil {
+		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "��取社区统计失败", err)
+		return
+	}
+	vo.RespondSuccess(c, "成功", stats)
+}

@@ -173,7 +173,7 @@ func (h *CourseHandler) GetStructuredCoursesHandler(c *gin.Context) {
 	}
 
 	params = h.courseStructureService.ValidParams(params)
-	divisions := GetStructuredCourses(params.Weekday, params.WeekNum, params.LessonNum)
+	divisions := GetStructuredCoursesWithCache(params.Weekday, params.WeekNum, params.LessonNum)
 
 	//divisions
 	vo.RespondSuccess(c, "课程数据获取成功", divisions)

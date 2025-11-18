@@ -104,3 +104,10 @@ type ActiveUserVO struct {
 	Avatar    string `json:"avatar,omitempty"`
 	PostCount int64  `json:"postCount"`
 }
+
+// CommunityStatsVO 社区统计信息：总帖子数、注册用户数、今日新增帖子数
+type CommunityStatsVO struct {
+	TotalPosts    int64 `json:"totalPosts"`
+	TotalUsers    int64 `json:"totalUsers"`
+	TodayNewPosts int64 `json:"todayNewPosts"`
+}

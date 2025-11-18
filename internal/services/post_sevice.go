@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
-	"strings"
 )
 
 type PostService struct {
@@ -606,4 +607,35 @@ func (s *PostService) GetActiveUsers(days int, limit int) ([]vo.ActiveUserVO, er
 		})
 	}
 	return res, nil
+}
+
+// GetCommunityStats 返回社区统计：总帖子、注册用户数、今日新帖
+func (s *PostService) GetCommunityStats() (vo.CommunityStatsVO, error) {
+	var stats vo.CommunityStatsVO
+
+	// total posts
+	var totalPosts int64
+	if err := database.Client.Model(&dto.Post{}).Count(&totalPosts).Error; err != nil {
+		return stats, err
+	}
+
+	// total users
+	var totalUsers int64
+	if err := database.Client.Model(&dto.User{}).Count(&totalUsers).Error; err != nil {
+		return stats, err
+	}
+
+	// today new posts: created_at >= today's midnight
+	var todayNew int64
+	if err := database.Client.Raw("SELECT COUNT(*) as cnt FROM posts WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-%d 00:00:00')").Scan(&todayNew).Error; err != nil {
+		// fallback to using GORM count with condition
+		if err2 := database.Client.Model(&dto.Post{}).Where("created_at >= DATE_FORMAT(NOW(), '%Y-%m-%d 00:00:00')").Count(&todayNew).Error; err2 != nil {
+			return stats, err2
+		}
+	}
+
+	stats.TotalPosts = totalPosts
+	stats.TotalUsers = totalUsers
+	stats.TodayNewPosts = todayNew
+	return stats, nil
 }
