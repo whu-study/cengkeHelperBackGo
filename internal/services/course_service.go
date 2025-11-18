@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"log"
+	"math"
 	"slices"
 	"strconv"
 )
@@ -259,10 +260,12 @@ func (s *CourseService) SubmitCourseReview(userID uint32, payload dto.CourseRevi
 	// 3. 使用事务创建评价记录并更新课程统计信息
 	// 使用 database.Client
 	err := database.Client.Transaction(func(tx *gorm.DB) error {
+		// 将前端可能传来的小数评分（如 4.5）四舍五入为最近的整数以兼容后端存储（int）
+		roundedRating := int(math.Round(float64(payload.Rating)))
 		reviewToCreate := dto.CourseReviewModel{ // 使用 dto.CourseReviewModel
 			CourseID: payload.CourseID,
 			UserID:   userID,
-			Rating:   payload.Rating,
+			Rating:   roundedRating,
 			Comment:  payload.Comment,
 			// User 和 Course 关联字段通常由 GORM 自动处理或在查询时 Preload，创建时不需要手动赋值模型实例
 		}

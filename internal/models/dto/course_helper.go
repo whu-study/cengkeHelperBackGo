@@ -61,8 +61,9 @@ func (CourseReviewModel) TableName() string {
 }
 
 type CourseReviewCreateDTO struct {
-	CourseID uint32 `json:"courseId" binding:"required"`           // 课程ID
-	Rating   int    `json:"rating" binding:"required,min=1,max=5"` // 课程评分 (例如 1-5)
-	Comment  string `json:"comment" binding:"required,max=1000"`   // 课程评论内容
+	CourseID uint32 `json:"courseId" binding:"required"` // 课程ID
+	// 使用 float32 接收前端可能传来的分数（例如 4.5），后端会在保存前转换为整数以兼容现有存储结构
+	Rating  float32 `json:"rating" binding:"required,gte=1,lte=5"` // 课程评分 (支持小数，如 4.5)
+	Comment string  `json:"comment" binding:"required,max=1000"`   // 课程评论内容
 	// UserID 会从当前登录用户获取，不需要前端传递
 }
