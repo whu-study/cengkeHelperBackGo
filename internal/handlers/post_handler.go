@@ -5,6 +5,7 @@ import (
 	"cengkeHelperBackGo/internal/models/dto"
 	"cengkeHelperBackGo/internal/models/vo" // 导入包含 RespData 和辅助函数的包
 	"cengkeHelperBackGo/internal/services"
+	courseSvc "cengkeHelperBackGo/internal/services/course"
 	"errors"
 	"fmt"
 	"net/http"
@@ -416,4 +417,71 @@ func (h *PostHandler) GetCommunityStatsHandler(c *gin.Context) {
 		return
 	}
 	vo.RespondSuccess(c, "成功", stats)
+}
+
+// GetCommunityOverviewHandler godoc
+// @Summary 获取社区概览（课程与帖子）
+// @Description 返回当前时段课程数、今日课程数和今日帖子数
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Param weekNum query int false "周次（默认为当前周）"
+// @Param weekday query int false "星期几（0=周日） 默认为当前星期）"
+// @Param lessonNum query int false "节次（默认当前节次）"
+// @Success 200 {object} vo.RespData{data=vo.CommunityOverviewVO} "成功"
+// @Failure 500 {object} vo.RespData "服务器内部错误"
+// @Router /community/overview [get]
+func (h *PostHandler) GetCommunityOverviewHandler(c *gin.Context) {
+	// parse optional params (0 means use current)
+	weekNum := 0
+	weekday := 0
+	lessonNum := 0
+	if w := c.Query("weekNum"); w != "" {
+		if v, err := strconv.Atoi(w); err == nil {
+			weekNum = v
+		}
+	}
+	if d := c.Query("weekday"); d != "" {
+		if v, err := strconv.Atoi(d); err == nil {
+			weekday = v
+		}
+	}
+	if l := c.Query("lessonNum"); l != "" {
+		if v, err := strconv.Atoi(l); err == nil {
+			lessonNum = v
+		}
+	}
+
+	// if params are 0, the course package helpers expect real values; use course package to compute current time
+	if weekNum == 0 || weekday == 0 || lessonNum == 0 {
+		// Get current time info from services package's CourseStructureService
+		w, wd, ln := services.NewCourseStructureService().GetCurrentCourseTime()
+		if weekNum == 0 {
+			weekNum = w
+		}
+		if weekday == 0 {
+			weekday = wd
+		}
+		if lessonNum == 0 {
+			lessonNum = ln
+		}
+	}
+
+	currentCount := courseSvc.GetSingleNumOfCourses(weekday, weekNum, lessonNum)
+	todayCount := courseSvc.GetOneDayNumOfCourses(weekday, weekNum)
+
+	// get today's posts from post service
+	commStats, err := h.postService.GetCommunityStats()
+	if err != nil {
+		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "获取社区统计失败", err)
+		return
+	}
+
+	overview := vo.CommunityOverviewVO{
+		CurrentPeriodCourses: currentCount,
+		TodayCourses:         todayCount,
+		TodayPosts:           commStats.TodayNewPosts,
+	}
+
+	vo.RespondSuccess(c, "成功", overview)
 }

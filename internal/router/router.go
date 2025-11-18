@@ -33,6 +33,7 @@ func Routers() *gin.Engine {
 		v1.GET("/posts", postHandler.GetPosts)
 		v1.GET("/posts/active-users", postHandler.GetActiveUsersHandler)
 		v1.GET("/community/stats", postHandler.GetCommunityStatsHandler)
+		v1.GET("/community/overview", postHandler.GetCommunityOverviewHandler)
 		v1.GET("/posts/:id", postHandler.GetPostByID)
 		v1.GET("/courses/reviews/:courseId", courseHandler.GetCourseReviewsHandler)
 		v1.Use(filter.UserAuthChecker())

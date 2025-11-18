@@ -111,3 +111,10 @@ type CommunityStatsVO struct {
 	TotalUsers    int64 `json:"totalUsers"`
 	TodayNewPosts int64 `json:"todayNewPosts"`
 }
+
+// CommunityOverviewVO 包含课程与帖子相关的概览数据
+type CommunityOverviewVO struct {
+	CurrentPeriodCourses int   `json:"currentPeriodCourses"` // 当前时段课程总数
+	TodayCourses         int   `json:"todayCourses"`         // 今日课程总数
+	TodayPosts           int64 `json:"todayPosts"`           // 今日帖子总数
+}

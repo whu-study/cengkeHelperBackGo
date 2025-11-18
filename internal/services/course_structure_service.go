@@ -33,18 +33,22 @@ type CourseQueryParams struct {
 // GetCurrentCourseTime 获取当前的课程时间（周次、星期、节次）
 func (s *CourseStructureService) GetCurrentCourseTime() (weekNum int, weekday int, lessonNum int) {
 	now := time.Now()
-	// 计算第几周（学期开始日期：2025年9月8日）
 	beginDate := time.Date(2025, time.September, 8, 0, 0, 0, 0, time.Local)
-	sub := now.Sub(beginDate)
+	return s.TimeToNums(now, beginDate)
+}
+
+func (s *CourseStructureService) TimeToNums(t, beginDate time.Time) (weekNum int, weekday int, lessonNum int) {
+	// 计算第几周（学期开始日期：2025年9月8日）
+	sub := t.Sub(beginDate)
 	durationDay := int(sub.Hours()) / 24
 	weekNum = durationDay/7 + 1
 
 	// 计算周几（0=周日, 1=周一, ..., 6=周六）
-	weekday = int(now.Weekday())
+	weekday = int(t.Weekday())
 
 	// 计算第几节课
-	hour := now.Hour()
-	minute := now.Minute()
+	hour := t.Hour()
+	minute := t.Minute()
 
 	switch {
 	case hour < 7 || (hour == 7 && minute < 50):
