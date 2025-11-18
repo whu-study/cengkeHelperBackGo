@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"log"
+	"slices"
+	"strconv"
 )
 
 // CourseService 结构体用于组织课程相关的服务方法
@@ -26,18 +28,129 @@ func NewCourseService() *CourseService {
 // 我们在这里保持这个转换逻辑，但确保字段映射正确。
 // dto.CourseInfo 包含 ID，而原始 convertCoursesToVO 的输出 vo.CourseInfoVO 没有ID，但前端 course.ts 定义了 id。
 // 我将假设 vo.CourseInfoVO 也需要 ID。
-//func convertCourseModelToInfoVO(course dto.CourseInfo) vo.CourseInfoVO {
-//	//return vo.CourseInfoVO{
-//	//	ID:           course.ID, // 确保 vo.CourseInfoVO 有 ID 字段
-//	//	Room:         course.Room,
-//	//	Faculty:      course.Faculty,
-//	//	CourseName:   course.CourseName,
-//	//	TeacherName:  course.TeacherName,
-//	//	TeacherTitle: course.TeacherTitle,
-//	//	CourseTime:   course.CourseTime,
-//	//	CourseType:   course.CourseType,
-//	//}
-//}
+//
+//	func convertCourseModelToInfoVO(course dto.CourseInfo) vo.CourseInfoVO {
+//		//return vo.CourseInfoVO{
+//		//	ID:           course.ID, // 确保 vo.CourseInfoVO 有 ID 字段
+//		//	Room:         course.Room,
+//		//	Faculty:      course.Faculty,
+//		//	CourseName:   course.CourseName,
+//		//	TeacherName:  course.TeacherName,
+//		//	TeacherTitle: course.TeacherTitle,
+//		//	CourseTime:   course.CourseTime,
+//		//	CourseType:   course.CourseType,
+//		//}
+//	}
+//
+// courseQueryRow 用于接收 Raw SQL 查询的聚合结果
+// 这基于 const.go 中的 queryStr 的 SELECT 字段
+type courseQueryRow struct {
+	ID           uint32 `gorm:"column:id"`
+	CourseNum    string `gorm:"column:course_num"`
+	Classroom    string `gorm:"column:classroom"`
+	Building     string `gorm:"column:building"`
+	CourseType   string `gorm:"column:course_type"`
+	Faculty      string `gorm:"column:faculty"`
+	CourseName   string `gorm:"column:course_name"`
+	Teacher      string `gorm:"column:teacher"`
+	TeacherTitle string `gorm:"column:teacher_title"`
+	WeekAndTime  uint32 `gorm:"column:week_and_time"`
+	DayOfWeek    uint8  `gorm:"column:day_of_week"` // 数据库中是 uint8
+}
+
+// queryStrAllByArea 是一个新的查询字符串，它只按 'area' 过滤
+// 它基于 const.go 中的 queryStr，但移除了 ti.day_of_week = ?
+const queryStrAllByArea = `
+        SELECT 
+            MAX(ci.id) AS id,
+            ci.course_num,
+            ti.classroom,
+            ti.building,
+            MAX(ci.course_type) AS course_type,
+            MAX(ci.faculty) AS faculty,
+            MAX(ci.course_name) AS course_name,
+            MAX(ci.teacher) AS teacher,
+            MAX(ci.teacher_title) AS teacher_title,
+            MAX(ti.week_and_time) AS week_and_time,
+            MAX(ti.day_of_week) AS day_of_week
+        FROM time_infos ti 
+        JOIN course_infos ci ON ci.id = ti.course_info_id
+        WHERE ti.area = ? 
+        GROUP BY 
+            ti.building, 
+            ti.classroom,
+            ci.course_num
+    `
+
+// GetAllCourses 获取数据库中所有的课程信息，并按学部和教学楼分组
+// (返回与 course.GetTeachInfos 相同的结构)
+func (s *CourseService) GetAllCourses() ([][]vo.BuildingInfoVO, error) {
+
+	// 模仿 building.go，我们假设有4个学部(area 1-4)
+	allFacultiesData := make([][]vo.BuildingInfoVO, 4)
+
+	// 循环遍历4个学部 (Area 1 到 4)
+	for areaNum := 1; areaNum <= 4; areaNum++ {
+
+		var results []courseQueryRow
+
+		// 1. 执行 Raw SQL 查询，获取该学部的所有课程
+		if err := database.Client.Raw(queryStrAllByArea, areaNum).Scan(&results).Error; err != nil {
+			log.Printf("Service: GetAllCourses (Area %d) 查询失败: %v", areaNum, err)
+			return nil, fmt.Errorf("获取所有课程 (Area %d) 的数据库操作失败: %w", areaNum, err)
+		}
+
+		// 2. 将结果按教学楼分组 (模仿 building.go)
+		buildingMap := make(map[string][]vo.CourseInfoVO)
+
+		for _, row := range results {
+			// 关键区别：我们不再调用 generator.IsWeekLessonMatch
+			// 我们接受所有查询到的课程
+
+			// 转换课程时间
+			// TODO: 你应该使用你的 generator 包中的函数来将 row.WeekAndTime 转换为可读字符串
+			// 暂时我们使用一个占位符
+			dayStr := strconv.Itoa(int(row.DayOfWeek))
+			courseTimeStr := fmt.Sprintf("周%s (Raw: %d)", dayStr, row.WeekAndTime)
+
+			// 确保 vo.CourseInfoVO 的字段被正确填充
+			res := vo.CourseInfoVO{
+				ID:           row.ID,
+				Room:         row.Classroom,
+				Faculty:      row.Faculty,
+				CourseName:   row.CourseName,
+				TeacherName:  row.Teacher,
+				TeacherTitle: row.TeacherTitle,
+				CourseTime:   courseTimeStr,
+				CourseType:   row.CourseType,
+			}
+
+			buildingMap[row.Building] = append(buildingMap[row.Building], res)
+		}
+
+		// 3. 将 map 转换为 []vo.BuildingInfoVO
+		buildingInfos := make([]vo.BuildingInfoVO, 0, len(buildingMap))
+		for key, infos := range buildingMap {
+			// 填充 vo.BuildingInfoVO
+			buildingInfos = append(buildingInfos, vo.BuildingInfoVO{
+				Building: key,
+				Label:    key, // Label 和 Value 也填充一下
+				Value:    0,   //
+				Infos:    infos,
+			})
+		}
+
+		// 4. 按课程数量对教学楼进行排序 (模仿 building.go)
+		slices.SortFunc(buildingInfos, func(a, b vo.BuildingInfoVO) int {
+			return len(b.Infos) - len(a.Infos)
+		})
+
+		// 5. 将这个学部的教学楼列表存入最终结果
+		allFacultiesData[areaNum-1] = buildingInfos
+	}
+
+	return allFacultiesData, nil
+}
 
 // GetCourseDetailByID 根据课程 ID 获取课程详细信息
 func (s *CourseService) GetCourseDetailByID(courseID uint) (*vo.CourseDetailVO, error) {

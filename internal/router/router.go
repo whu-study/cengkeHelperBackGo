@@ -4,6 +4,7 @@ import (
 	"cengkeHelperBackGo/internal/filter"
 	"cengkeHelperBackGo/internal/handlers"
 	"cengkeHelperBackGo/internal/handlers/auth"
+	"cengkeHelperBackGo/internal/handlers/chat"
 	"cengkeHelperBackGo/internal/handlers/course"
 	"time"
 
@@ -17,7 +18,7 @@ func Routers() *gin.Engine {
 	postHandler := handlers.NewPostHandler()
 	commentHandler := handlers.NewCommentHandler()
 	courseHandler := course.NewCourseHandler()
-
+	chatHandler := chat.NewChatHandler()
 	v1 := app.Group("/api/v1")
 	{
 		v1.GET("/ping", handlers.PingHandler)
@@ -26,11 +27,13 @@ func Routers() *gin.Engine {
 		v1.POST("/auth/user-logout", auth.UserLogoutHandler)
 		v1.POST("/auth/send-email-code", auth.SendEmailCodeHandler) // 添加发送验证码接口
 		v1.GET("/courses", courseHandler.GetCoursesHandler)
+		v1.GET("/all", courseHandler.GetAllCoursesHandler)
 		v1.GET("/courses/:courseId", courseHandler.GetCourseDetailHandler)
 		v1.GET("/posts/comments/:postId", commentHandler.GetCommentsByPostID) // GET /api/v1/posts/:id/comments (获取帖子的评论)
 		v1.GET("/posts", postHandler.GetPosts)
 		v1.GET("/posts/:id", postHandler.GetPostByID)
 		v1.GET("/courses/reviews/:courseId", courseHandler.GetCourseReviewsHandler)
+		v1.POST("/chat/stream", chatHandler.ChatStreamHandler)
 		v1.Use(filter.UserAuthChecker())
 
 		v1.GET("/users/echo", handlers.UserEchoHandler)

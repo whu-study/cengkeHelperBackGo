@@ -38,6 +38,32 @@ func getCourseHandlerUserIDFromContext(c *gin.Context) (*uint32, bool) {
 	return &userId, true
 }
 
+// GetAllCoursesHandler godoc
+// @Summary 获取所有课程列表 (按学部和教学楼分组)
+// @Description 获取数据库中所有课程的列表，按学部和教学楼进行分组。
+// @Tags Courses
+// @Accept json
+// @Produce json
+// @Success 200 {object} vo.RespData{data=[][]vo.BuildingInfoVO} "成功"
+// @Failure 500 {object} vo.RespData "服务器内部错误"
+// @Router /courses/all [get]
+func (h *CourseHandler) GetAllCoursesHandler(c *gin.Context) {
+
+	// 调用更新后的 service 方法
+	courses, serviceErr := h.courseService.GetAllCourses()
+	if serviceErr != nil {
+		vo.RespondError(c, http.StatusInternalServerError, config.CodeServerError, "获取所有课程失败", serviceErr)
+		return
+	}
+
+	if courses == nil {
+		// 确保返回一个空的嵌套数组，而不是 null
+		courses = [][]vo.BuildingInfoVO{}
+	}
+
+	vo.RespondSuccess(c, "所有课程数据获取成功", courses)
+}
+
 // GetCoursesHandler godoc
 // @Summary 获取所有课程列表 (按学部和教学楼分组)
 // @Description 获取所有课程的列表，按学部和教学楼进行分组。

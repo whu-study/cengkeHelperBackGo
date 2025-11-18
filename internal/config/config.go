@@ -37,6 +37,9 @@ var Conf struct {
 		DB       int    `yaml:"db" json:"db"`
 	} `yaml:"redis" json:"redis"`
 	JwtSecurityKey string `yaml:"jwt_security_key" json:"jwtSecurityKey"`
+	Agent          struct {
+		ServiceURL string `yaml:"service_url" json:"serviceUrl"`
+	} `yaml:"agent" json:"agent"`
 }
 
 // LoadConfig 加载配置文件
