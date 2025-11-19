@@ -18,7 +18,7 @@ type RespTeachInfo struct {
 	CourseTime   string `json:"courseTime"`
 	CourseType   string `json:"courseType"`
 	Description  string `json:"description,omitempty"`
-	Credits      string `json:"credits,omitempty"`
+	Credit       string `json:"credit,omitempty"`
 
 	WeekAndTime uint32 `json:"weekAndTime,omitempty"`
 	DayOfWeek   int    `json:"dayOfWeek,omitempty"`
@@ -40,7 +40,7 @@ type MapTeachInfo struct {
 	ReviewCount   uint32
 	AverageRating float32
 
-	Credits string
+	Credit string
 
 	DayOfWeek int
 
@@ -88,7 +88,7 @@ func GetInfos(weekNum, weekday, lessonNum int) [][]BuildingTeachInfos {
 				TeacherTitle:  info.TeacherTitle,
 				CourseTime:    generator.NearestToDisplay(lessonNum, info.WeekAndTime),
 				CourseType:    info.CourseType,
-				Credits:       info.Credits,
+				Credit:        info.Credit,
 				AverageRating: info.AverageRating,
 				ReviewCount:   info.ReviewCount,
 

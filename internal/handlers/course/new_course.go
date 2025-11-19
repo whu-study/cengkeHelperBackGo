@@ -106,7 +106,7 @@ func GetStructuredCourses(dayOfWeek int, weekNum int, lessonNum int) []vo.Divisi
 					TeacherName:   info.TeacherName,
 					TeacherTitle:  info.TeacherTitle,
 					Faculty:       info.Faculty,
-					Credits:       course.ParseCredits(info.Credits),
+					Credits:       course.ParseCredits(info.Credit),
 					CourseType:    info.CourseType,
 					Room:          info.Room,
 					TimeSlots:     course.ParseTimeSlots(info.WeekAndTime, info.DayOfWeek),

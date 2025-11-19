@@ -177,7 +177,7 @@ func (s *CourseService) GetCourseDetailByID(courseID uint) (*vo.CourseDetailVO, 
 	//	CourseTime:    courseModel.CourseTime,
 	//	CourseType:    courseModel.CourseType,
 	//	Description:   courseModel.Description,
-	//	Credits:       courseModel.Credits,
+	//	Credit:       courseModel.Credit,
 	//	AverageRating: courseModel.AverageRating,
 	//	ReviewCount:   courseModel.ReviewCount,
 	//}
